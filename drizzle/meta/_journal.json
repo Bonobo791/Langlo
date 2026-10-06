@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1791316090687,
+      "tag": "0000_initial_study",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1791316138839,
+      "tag": "0001_card_delivery_identity",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791316721591,
+      "tag": "0002_harden_persisted_invariants",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1791320460000,
+      "tag": "0003_review_invariants",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "date": "2026-10-06",
+  "repository": "Bonobo791/Langlo",
+  "pull_request": 1,
+  "reviewed_remote_head": "29a779d63018872c965be8acfa38e6c65f6b69af",
+  "local_implementation_commit": "b4dc9e87994f8753223563e2f50767b545612fb5",
+  "local_commit_scope": "implementation checkpoint; public publication may have a different commit SHA with the same verified source tree",
+  "scope": "foundation review corrections only; prepared-study is excluded",
+  "runtime": { "node": "24.19.0", "npm": "11.9.0" },
+  "install": {
+    "command": "npm ci --cache /tmp/langlo-pr1-npm-cache",
+    "exit_code": 0,
+    "packages_added": 215,
+    "lockfile_unchanged": true,
+    "lockfile_sha256": "768f666bee5b8a5190664cb6c4ff9cd92abe7b4efa6db372fe7a29a248632e96",
+    "initial_limit": "default cache failed; disposable writable cache resolved it after explicit install approval"
+  },
+  "checks": [
+    { "command": "npm run check", "exit_code": 0, "errors": 0, "warnings": 0 },
+    { "command": "npm run lint", "exit_code": 0 },
+    { "command": "npm run format:check", "exit_code": 0 },
+    {
+      "command": "npm test",
+      "exit_code": 0,
+      "files": 14,
+      "tests": 121,
+      "duration_seconds": 27.09
+    },
+    {
+      "command": "npm run test:property",
+      "exit_code": 0,
+      "files": 2,
+      "properties": 3,
+      "runs_per_property": 100,
+      "duration_seconds": 5.38
+    },
+    {
+      "command": "npm run build",
+      "exit_code": 0,
+      "adapter": "@sveltejs/adapter-node"
+    },
+    {
+      "command": "npx drizzle-kit check --config src/lib/server/db/drizzle.config.ts",
+      "exit_code": 0
+    },
+    {
+      "command": "node --test tests/native-review-invariants.mjs",
+      "exit_code": 0,
+      "tests": 7
+    },
+    {
+      "command": "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm run test:e2e -- --grep 'private routes|server generates|invalid runtime|reserved private|unexpected server errors'",
+      "exit_code": 0,
+      "cases": 10,
+      "duration_seconds": 6.1,
+      "scope": "eight built HTTP and two compiled-server executions; no rendered browser fixture"
+    },
+    {
+      "command": "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm run test:e2e",
+      "exit_code": 1,
+      "passed_server_cases": 10,
+      "failed_browser_launch_cases": 6,
+      "duration_seconds": 15.0,
+      "reason": "Chromium process_singleton_posix socket Operation not permitted; no rendered pass claimed"
+    },
+    { "command": "git diff --check", "exit_code": 0 }
+  ],
+  "regressions": {
+    "fixture_creation": "real symlinked TMPDIR and marker-write failures: observed native RED 0/3 then GREEN 3/3; actual fixture and guard suites passed",
+    "runtime_config": "observed local-token and padded-remote-token failures then GREEN; exact redacted origin errors tested",
+    "actual_libsql_upgrades": "five invalid histories fail closed with migration count three, unchanged rows and no new triggers; clean/repeated/valid upgrades passed",
+    "runtime_lint": "36 actual ESLint controls passed after two observed RED/GREEN rounds, including module extensions and static global aliases",
+    "unexpected_server_error": "actual compiled hooks: safe 500, UUID and exact diagnostics; identical assertion fails on private fault copy reflecting error.message"
+  },
+  "review": {
+    "independent_focused_tests": 76,
+    "verified_critical_findings": 0,
+    "verified_important_findings": 0,
+    "minor_stale_evidence": "corrected before checkpoint",
+    "limits": "not a formal proof or production/provider acceptance"
+  },
+  "remaining_gates": [
+    "exact public patch commit CI and full rendered browser observation",
+    "CodeAnt fourteen antipattern locations behind provider sign-in; public three suggestions addressed locally",
+    "merge decision remains separate",
+    "real auth, curricula, providers, Windows and release remain unfinished"
+  ],
+  "preserved": {
+    "published_migrations_0000_to_0002": "byte-identical",
+    "main": "no write",
+    "prepared_study": "separate clean checkpoint ea7538e79598226e553159336bd2a2c072023b17",
+    "license": "owner decision pending; no new license grant"
+  },
+  "privacy": {
+    "synthetic_only": true,
+    "live_provider_calls": 0,
+    "paid_calls": 0,
+    "production_database_access": false
+  }
+}

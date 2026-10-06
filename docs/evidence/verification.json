@@ -1,0 +1,98 @@
+{
+  "date": "2026-10-06",
+  "verification_stage": "exact published foundation-review source snapshot; later local follow-up work is separate",
+  "plan_marker": "language-app-adm-20261006",
+  "source_commit": "a2d7964a3cf785ff2360cd9c17273222518495cc",
+  "source_commit_scope": "available public checkpoint verified by the linked completed CI runs; this record does not claim its own future document commit hash",
+  "source_tree": "68ab53c3b5e6c9b206ce1cb90b1fdddeec140c7a",
+  "runtime": {
+    "node": "24.19.0",
+    "npm": "11.9.0"
+  },
+  "ci_runs": [
+    {
+      "id": 37538219518,
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Bonobo791/Langlo/actions/runs/37538219518",
+      "head_sha": "a2d7964a3cf785ff2360cd9c17273222518495cc"
+    },
+    {
+      "id": 37538215650,
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Bonobo791/Langlo/actions/runs/37538215650",
+      "head_sha": "a2d7964a3cf785ff2360cd9c17273222518495cc"
+    }
+  ],
+  "checks": [
+    {
+      "command": "npm ci",
+      "status": "passed",
+      "lockfile_unchanged": true
+    },
+    {
+      "command": "npm run check",
+      "status": "passed",
+      "errors": 0,
+      "warnings": 0
+    },
+    {
+      "command": "npm run lint",
+      "status": "passed"
+    },
+    {
+      "command": "npm run format:check",
+      "status": "passed"
+    },
+    {
+      "command": "npm test",
+      "status": "passed",
+      "tests": 121,
+      "files": 14
+    },
+    {
+      "command": "npm run test:property",
+      "status": "passed",
+      "properties": 3,
+      "files": 2,
+      "runs_per_property": 100
+    },
+    {
+      "command": "npm run build",
+      "status": "passed",
+      "adapter": "@sveltejs/adapter-node"
+    },
+    {
+      "command": "npm run test:e2e",
+      "status": "passed",
+      "tests": 16,
+      "scope": "six rendered browser and ten server-level project executions in remote CI",
+      "screenshots_inspected": false
+    }
+  ],
+  "historical_local_evidence": "verification-local-foundation-20261006.json",
+  "local_review_evidence": "PR1-verification.json",
+  "limits": {
+    "current_local_followup": "not yet published; its verification is recorded separately",
+    "live_provider_calls": 0,
+    "paid_calls": 0,
+    "production_database_access": false,
+    "real_windows_test": false,
+    "feature_published": false,
+    "merged": false,
+    "deployed": false,
+    "codeant_gate": "14 antipatterns remain failed; three supplied SQL findings were validated separately"
+  },
+  "remaining_gates": [
+    "owner license choice",
+    "maintained authentication",
+    "full checked curricula and source audit",
+    "assessment/mastery/card workflow",
+    "real provider and recovery acceptance",
+    "authorized Windows Anki spike",
+    "remaining CodeAnt detail/disposition and merge approval"
+  ]
+}
