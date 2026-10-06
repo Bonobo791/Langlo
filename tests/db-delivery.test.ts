@@ -27,6 +27,7 @@ afterEach(async () => {
   await disposeDisposableFixture(target);
 });
 
+/** Build an approved synthetic card insert with deliberate owner/source overrides for real constraint tests. */
 function insertCard(
   id: string,
   ownerId = identity.ownerId,

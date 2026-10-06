@@ -18,6 +18,7 @@ export const fixtureDatabaseFiles = [
   `${fixtureDatabaseName}-journal`
 ] as const;
 
+/** Build the fixed fixture-boundary error, omitting supplied paths and wrapped OS diagnostics. */
 function rejected(): Error {
   // Deliberately omit supplied paths, URLs, tokens and wrapped filesystem errors.
   return new Error(
@@ -25,6 +26,7 @@ function rejected(): Error {
   );
 }
 
+/** Require a canonical single-link file owned by this process; optional files may be absent, never linked. */
 async function regularPrivateFile(
   path: string,
   optional = false
@@ -45,6 +47,7 @@ async function regularPrivateFile(
   }
 }
 
+/** Check the marked temporary root, exact file URL and known sidecars before any open or reset operation. */
 export async function validateFixtureTarget(
   target: FixtureTarget
 ): Promise<{ rootPath: string; databasePath: string }> {

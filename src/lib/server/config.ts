@@ -1,4 +1,5 @@
 export class ConfigError extends Error {
+  /** Name the invalid variable, never its supplied value; parser callers use fixed names. */
   constructor(variable: string) {
     super(`Invalid ${variable}`);
     this.name = 'ConfigError';
@@ -14,6 +15,7 @@ export interface RuntimeConfig {
   revision: string;
 }
 
+/** Validate private runtime metadata without connecting to a provider; retain credentials only for selected remote libSQL. */
 export function parseRuntimeConfig(
   env: Record<string, string | undefined>
 ): RuntimeConfig {

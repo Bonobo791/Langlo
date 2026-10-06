@@ -11,6 +11,7 @@ interface Options {
   nodeArgs?: string[];
 }
 
+/** Run a bounded real fixture command; expose only allowlisted exit diagnostics, never raw arguments or child errors. */
 export async function runFixtureCli(
   command: string,
   args: string[] = [],

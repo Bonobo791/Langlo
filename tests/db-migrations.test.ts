@@ -26,6 +26,7 @@ afterEach(async () => {
   await Promise.all(fixtures.splice(0).map(disposeDisposableFixture));
 });
 
+/** Allocate a tracked disposable target so clean and historical-upgrade tests can choose their migration prefix. */
 async function fixture() {
   const target = await createDisposableFixture();
   fixtures.push(target);

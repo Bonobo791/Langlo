@@ -1,4 +1,5 @@
 import type { Parameters } from 'fast-check';
+/** Read the 100-run default and strict seed/replay overrides; reject malformed controls rather than silently fallback. */
 export function propertyOptions(
   env: Record<string, string | undefined> = process.env
 ): Parameters<unknown> {

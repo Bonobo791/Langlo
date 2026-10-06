@@ -19,6 +19,7 @@ import {
   type FixtureTarget
 } from '../../src/lib/server/db/fixture-target.ts';
 
+/** Create a canonical marked private temporary root; marker failure cleans only this newly owned root. */
 export async function createDisposableFixture(): Promise<FixtureTarget> {
   const fixtureRoot = await mkdtemp(
     join(await realpath(tmpdir()), 'langlo-fixture-')
@@ -52,6 +53,7 @@ export async function resetDisposableFixture(
     await rm(join(rootPath, file), { force: true });
 }
 
+/** After clients close, remove a validated fixture only when it contains its marker and known database files. */
 export async function disposeDisposableFixture(
   target: FixtureTarget
 ): Promise<void> {

@@ -3,6 +3,7 @@ import {
   type FixtureTarget
 } from '../../src/lib/server/db/connection.ts';
 
+/** Idempotently seed two synthetic owners and versioned study history through the guarded SQL-only client. */
 export async function seedStudy(target: FixtureTarget) {
   const { client, close } = await openFixtureClient(target);
   try {

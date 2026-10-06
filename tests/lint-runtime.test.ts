@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 const eslint = new ESLint();
 
+/** Ask the actual ESLint configuration for diagnostics in the specified runtime file context. */
 async function messages(filePath: string, source: string) {
   const [result] = await eslint.lintText(source, { filePath });
   return result.messages;

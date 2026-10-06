@@ -28,6 +28,7 @@ const fixtures: FixtureTarget[] = [];
 afterEach(async () => {
   await Promise.all(fixtures.splice(0).map(disposeDisposableFixture));
 });
+/** Register a marked temporary target for afterEach disposal; each guard scenario controls migration explicitly. */
 async function fixture() {
   const target = await createDisposableFixture();
   fixtures.push(target);

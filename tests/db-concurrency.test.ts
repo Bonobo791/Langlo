@@ -32,6 +32,7 @@ interface Writer {
   stop(): void;
 }
 
+/** Start one guarded Node writer with bounded ready/release/exit coordination and explicit cleanup controls. */
 function startWriter(
   target: FixtureTarget,
   proposedId: string,
@@ -79,6 +80,7 @@ function startWriter(
     () => fail(new Error('Concurrent fixture writer startup timed out')),
     10000
   );
+  /** Reject readiness/result promises and kill the failed child; exit handlers complete cleanup reporting. */
   function fail(error: Error) {
     clearTimeout(timer);
     readyReject(error);
@@ -142,6 +144,7 @@ function startWriter(
   };
 }
 
+/** Release independent fixture writers at one barrier, then collect insert effects and persisted identities. */
 async function raceWriters(
   target: FixtureTarget,
   counts: { ownerA: number; ownerB: number }
@@ -189,6 +192,7 @@ async function raceWriters(
   }
 }
 
+/** Apply the same one-identity/one-insert oracle to genuine constraints and private missing-uniqueness faults. */
 function assertSingleOwnerIdentity(
   result: Awaited<ReturnType<typeof raceWriters>>
 ) {

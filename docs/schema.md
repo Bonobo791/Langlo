@@ -76,4 +76,4 @@ T010 auth, T011 query authorization, T012 checked content import, T017/T018 scor
 
 ## Review hardening evidence
 
-The three-migration schema now closes the demonstrated delivery retargeting and non-integral version gaps. Regression tests were observed failing on the earlier schema and passing with migration 0002. Future table rebuilds must retain all hand-authored triggers. Invalid numeric rows in the supported older schema cause the additive upgrade to fail closed; no data is silently coerced. Full service authorization, approval/lease transitions and real provider operation are still separate tasks.
+The four-migration schema now closes the demonstrated delivery retargeting and non-integral version gaps. Regression tests were observed failing on the earlier schema and passing with migration 0002. Future table rebuilds must retain all hand-authored triggers. Invalid numeric rows in the supported older schema cause the additive upgrade to fail closed; no data is silently coerced. Full service authorization, approval/lease transitions and real provider operation are still separate tasks.

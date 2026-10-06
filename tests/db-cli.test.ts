@@ -13,6 +13,7 @@ const fixtures: FixtureTarget[] = [];
 afterEach(async () => {
   await Promise.all(fixtures.splice(0).map(disposeDisposableFixture));
 });
+/** Pass the fixture's explicit root and URL to the CLI instead of relying on ambient database configuration. */
 function argumentsFor(target: FixtureTarget) {
   return [
     '--fixture-root',

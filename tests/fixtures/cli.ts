@@ -8,6 +8,7 @@ import type { FixtureTarget } from '../../src/lib/server/db/fixture-target.ts';
 const usage =
   'Use init, or migrate/seed/reset/dispose with --fixture-root ROOT --database-url file:URL';
 
+/** Parse exactly the explicit fixture-root/file-URL argument pair; target safety is checked by each operation. */
 function explicitTarget(args: string[]): FixtureTarget {
   if (
     args.length !== 4 ||
@@ -19,6 +20,7 @@ function explicitTarget(args: string[]): FixtureTarget {
   return { fixtureRoot: args[1], databaseUrl: args[3] };
 }
 
+/** Dispatch only disposable fixture operations, keeping migration/seed imports lazy and output bounded. */
 async function main(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);
   if (command === 'init' && args.length === 0) {

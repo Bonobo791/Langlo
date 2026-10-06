@@ -1,13 +1,38 @@
 {
   "date": "2026-10-06",
-  "verification_stage": "historical local foundation before publication; later CI observation below does not verify the review patch",
+  "verification_stage": "exact published foundation-review source snapshot; later local follow-up work is separate",
   "plan_marker": "language-app-adm-20261006",
-  "scope": ["T006", "T007", "T008", "T009"],
+  "source_commit": "a2d7964a3cf785ff2360cd9c17273222518495cc",
+  "source_commit_scope": "available public checkpoint verified by the linked completed CI runs; this record does not claim its own future document commit hash",
+  "source_tree": "68ab53c3b5e6c9b206ce1cb90b1fdddeec140c7a",
   "runtime": {
     "node": "24.19.0",
     "npm": "11.9.0"
   },
+  "ci_runs": [
+    {
+      "id": 37538219518,
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Bonobo791/Langlo/actions/runs/37538219518",
+      "head_sha": "a2d7964a3cf785ff2360cd9c17273222518495cc"
+    },
+    {
+      "id": 37538215650,
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Bonobo791/Langlo/actions/runs/37538215650",
+      "head_sha": "a2d7964a3cf785ff2360cd9c17273222518495cc"
+    }
+  ],
   "checks": [
+    {
+      "command": "npm ci",
+      "status": "passed",
+      "lockfile_unchanged": true
+    },
     {
       "command": "npm run check",
       "status": "passed",
@@ -16,26 +41,23 @@
     },
     {
       "command": "npm run lint",
-      "status": "passed",
-      "exit_code": 0
+      "status": "passed"
     },
     {
       "command": "npm run format:check",
-      "status": "passed",
-      "exit_code": 0
+      "status": "passed"
     },
     {
       "command": "npm test",
       "status": "passed",
-      "files": 11,
-      "tests": 62,
-      "duration_seconds": 25.29
+      "tests": 121,
+      "files": 14
     },
     {
       "command": "npm run test:property",
       "status": "passed",
-      "files": 2,
       "properties": 3,
+      "files": 2,
       "runs_per_property": 100
     },
     {
@@ -44,101 +66,33 @@
       "adapter": "@sveltejs/adapter-node"
     },
     {
-      "command": "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm run test:e2e -- --grep 'private routes|server generates|invalid runtime|reserved private'",
-      "status": "passed",
-      "tests": 8,
-      "scope": "built HTTP only; browser not required by these cases"
-    },
-    {
       "command": "npm run test:e2e",
-      "status": "blocked",
-      "unverified_browser_cases": 6,
-      "reason": "Chromium local IPC socket permission restriction, including scoped escalation; cloud browser loopback navigation blocked"
-    },
-    {
-      "command": "npx drizzle-kit check --config src/lib/server/db/drizzle.config.ts",
       "status": "passed",
-      "migrations": 3
-    },
-    {
-      "command": "npm test -- no-such-test-file",
-      "status": "expected_failure",
-      "exit_code": 1,
-      "reason": "no tests must fail"
-    },
-    {
-      "command": "FC_NUM_RUNS=1000 npm test -- tests/config.pbt.test.ts",
-      "status": "passed",
-      "properties": 2
-    },
-    {
-      "command": "FC_NUM_RUNS=1000 npm run test:property",
-      "status": "not_passed",
-      "reason": "DB property exceeded unchanged 10s cap; config properties passed; no extended DB success claimed"
-    },
-    {
-      "command": "fresh local clone npm ci/check/test/build",
-      "status": "passed",
-      "lockfile_unchanged": true,
-      "lockfile_sha256": "768f666bee5b8a5190664cb6c4ff9cd92abe7b4efa6db372fe7a29a248632e96",
-      "files": 11,
-      "tests": 62,
-      "test_duration_seconds": 16.42
+      "tests": 16,
+      "scope": "six rendered browser and ten server-level project executions in remote CI",
+      "screenshots_inspected": false
     }
   ],
-  "review": {
-    "critical_findings": 0,
-    "addressed_findings": [
-      "immutable persisted delivery identity",
-      "strict numeric version/counter/timestamp guards",
-      "retained genuine separate-process concurrency acceptance",
-      "private slash-variant headers"
-    ],
-    "verification": "reproducing regressions RED to GREEN plus final whole ordinary suite; no second broad review"
-  },
-  "rulings": [
-    {
-      "decision": "Use stable SvelteKit 3 supported config/types/private-env contracts rather than older draft file names",
-      "cost_if_wrong": "framework downgrade or migration before later features; no user data affected"
-    },
-    {
-      "decision": "Keep readiness 503 until dependent auth/schema/provider acceptance exists",
-      "cost_if_wrong": "operator must revise readiness policy after later foundation completion"
-    }
-  ],
-  "remaining_gates": [
-    "browser rendering and screenshots",
-    "owner license choice",
-    "remote publication and exact-commit CI",
-    "T010 maintained accounts",
-    "T011 verified-principal owner-scoped APIs",
-    "full checked curricula/importer",
-    "AI budget/model and live provider/SMTP configuration",
-    "authorized Windows Anki loopback spike",
-    "recovery and explicitly authorized release"
-  ],
-  "privacy": {
-    "synthetic_fixtures_only": true,
+  "historical_local_evidence": "verification-local-foundation-20261006.json",
+  "local_review_evidence": "PR1-verification.json",
+  "limits": {
+    "current_local_followup": "not yet published; its verification is recorded separately",
     "live_provider_calls": 0,
     "paid_calls": 0,
-    "remote_writes": 0,
     "production_database_access": false,
-    "client_secret_sentinel_leaks": 0
+    "real_windows_test": false,
+    "feature_published": false,
+    "merged": false,
+    "deployed": false,
+    "codeant_gate": "14 antipatterns remain failed; three supplied SQL findings were validated separately"
   },
-  "source_commit": "2a19ae62ffc73fd06eb9643949d50dc1aae09399",
-  "source_commit_scope": "historical local source commit, not an ancestor of the independently initialized public repository",
-  "later_ci_observation": {
-    "head_sha": "29a779d63018872c965be8acfa38e6c65f6b69af",
-    "run_id": 37528181007,
-    "url": "https://github.com/Bonobo791/Langlo/actions/runs/37528181007",
-    "event": "pull_request",
-    "status": "completed",
-    "conclusion": "success",
-    "observed_date": "2026-10-06",
-    "ordinary_tests": 62,
-    "default_properties": 3,
-    "playwright_cases": 14,
-    "screenshots_inspected": false,
-    "scope": "published foundation only; does not verify subsequent uncommitted fixes"
-  }
+  "remaining_gates": [
+    "owner license choice",
+    "maintained authentication",
+    "full checked curricula and source audit",
+    "assessment/mastery/card workflow",
+    "real provider and recovery acceptance",
+    "authorized Windows Anki spike",
+    "remaining CodeAnt detail/disposition and merge approval"
+  ]
 }
