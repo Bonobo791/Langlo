@@ -1,0 +1,128 @@
+{
+  "date": "2026-10-06",
+  "plan_marker": "language-app-adm-20261006",
+  "scope": ["T006", "T007", "T008", "T009"],
+  "runtime": {
+    "node": "24.19.0",
+    "npm": "11.9.0"
+  },
+  "checks": [
+    {
+      "command": "npm run check",
+      "status": "passed",
+      "errors": 0,
+      "warnings": 0
+    },
+    {
+      "command": "npm run lint",
+      "status": "passed",
+      "exit_code": 0
+    },
+    {
+      "command": "npm run format:check",
+      "status": "passed",
+      "exit_code": 0
+    },
+    {
+      "command": "npm test",
+      "status": "passed",
+      "files": 11,
+      "tests": 62,
+      "duration_seconds": 25.29
+    },
+    {
+      "command": "npm run test:property",
+      "status": "passed",
+      "files": 2,
+      "properties": 3,
+      "runs_per_property": 100
+    },
+    {
+      "command": "npm run build",
+      "status": "passed",
+      "adapter": "@sveltejs/adapter-node"
+    },
+    {
+      "command": "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm run test:e2e -- --grep 'private routes|server generates|invalid runtime|reserved private'",
+      "status": "passed",
+      "tests": 8,
+      "scope": "built HTTP only; browser not required by these cases"
+    },
+    {
+      "command": "npm run test:e2e",
+      "status": "blocked",
+      "unverified_browser_cases": 6,
+      "reason": "Chromium local IPC socket permission restriction, including scoped escalation; cloud browser loopback navigation blocked"
+    },
+    {
+      "command": "npx drizzle-kit check --config src/lib/server/db/drizzle.config.ts",
+      "status": "passed",
+      "migrations": 3
+    },
+    {
+      "command": "npm test -- no-such-test-file",
+      "status": "expected_failure",
+      "exit_code": 1,
+      "reason": "no tests must fail"
+    },
+    {
+      "command": "FC_NUM_RUNS=1000 npm test -- tests/config.pbt.test.ts",
+      "status": "passed",
+      "properties": 2
+    },
+    {
+      "command": "FC_NUM_RUNS=1000 npm run test:property",
+      "status": "not_passed",
+      "reason": "DB property exceeded unchanged 10s cap; config properties passed; no extended DB success claimed"
+    },
+    {
+      "command": "fresh local clone npm ci/check/test/build",
+      "status": "passed",
+      "lockfile_unchanged": true,
+      "lockfile_sha256": "768f666bee5b8a5190664cb6c4ff9cd92abe7b4efa6db372fe7a29a248632e96",
+      "files": 11,
+      "tests": 62,
+      "test_duration_seconds": 16.42
+    }
+  ],
+  "review": {
+    "critical_findings": 0,
+    "addressed_findings": [
+      "immutable persisted delivery identity",
+      "strict numeric version/counter/timestamp guards",
+      "retained genuine separate-process concurrency acceptance",
+      "private slash-variant headers"
+    ],
+    "verification": "reproducing regressions RED to GREEN plus final whole ordinary suite; no second broad review"
+  },
+  "rulings": [
+    {
+      "decision": "Use stable SvelteKit 3 supported config/types/private-env contracts rather than older draft file names",
+      "cost_if_wrong": "framework downgrade or migration before later features; no user data affected"
+    },
+    {
+      "decision": "Keep readiness 503 until dependent auth/schema/provider acceptance exists",
+      "cost_if_wrong": "operator must revise readiness policy after later foundation completion"
+    }
+  ],
+  "remaining_gates": [
+    "browser rendering and screenshots",
+    "owner license choice",
+    "remote publication and exact-commit CI",
+    "T010 maintained accounts",
+    "T011 verified-principal owner-scoped APIs",
+    "full checked curricula/importer",
+    "AI budget/model and live provider/SMTP configuration",
+    "authorized Windows Anki loopback spike",
+    "recovery and explicitly authorized release"
+  ],
+  "privacy": {
+    "synthetic_fixtures_only": true,
+    "live_provider_calls": 0,
+    "paid_calls": 0,
+    "remote_writes": 0,
+    "production_database_access": false,
+    "client_secret_sentinel_leaks": 0
+  },
+  "source_commit": "2a19ae62ffc73fd06eb9643949d50dc1aae09399"
+}

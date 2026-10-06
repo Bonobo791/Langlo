@@ -1,0 +1,65 @@
+import { randomUUID } from 'node:crypto';
+import * as env from '$app/env/private';
+import type { Handle, HandleServerError } from '@sveltejs/kit/hooks';
+import { parseRuntimeConfig } from './lib/server/config';
+import { safeDiagnostic, safeError } from './lib/server/diagnostics';
+
+export const handle: Handle = async ({ event, resolve }) => {
+  const correlationId = randomUUID();
+  event.locals.correlationId = correlationId;
+  const path = event.url.pathname.replace(/\/+$/, '') || '/';
+  const privateRoute =
+    path === '/app' ||
+    path.startsWith('/app/') ||
+    ['/login', '/recover', '/reset'].includes(path);
+  const headers: Record<string, string> = {
+    'x-correlation-id': correlationId,
+    'cache-control': privateRoute ? 'private, no-store' : 'no-store',
+    'x-content-type-options': 'nosniff',
+    'referrer-policy': 'no-referrer'
+  };
+  if (privateRoute || path.startsWith('/health/') || path === '/build.json') {
+    headers['x-robots-tag'] = 'noindex, nofollow';
+  }
+  // Liveness never depends on application config, schema, auth or a provider.
+  if (path !== '/health/live') {
+    try {
+      event.locals.config = parseRuntimeConfig(env);
+    } catch (error) {
+      console.warn(
+        JSON.stringify(safeDiagnostic('configuration', error, correlationId))
+      );
+      return Response.json(
+        {
+          message: 'Configuration unavailable. Please try again.',
+          correlationId
+        },
+        { status: 503, headers }
+      );
+    }
+  }
+  if (path === '/app' || path.startsWith('/app/')) {
+    if (event.request.method === 'GET' || event.request.method === 'HEAD') {
+      return new Response(null, {
+        status: 303,
+        headers: { ...headers, location: '/login' }
+      });
+    }
+    return Response.json(
+      { message: 'Accounts are not ready yet.', correlationId },
+      { status: 503, headers }
+    );
+  }
+  const response = await resolve(event);
+  const output = new Response(response.body, response);
+  for (const [key, value] of Object.entries(headers))
+    output.headers.set(key, value);
+  return output;
+};
+
+export const handleError: HandleServerError = ({ error, event }) => {
+  console.warn(
+    JSON.stringify(safeDiagnostic('request', error, event.locals.correlationId))
+  );
+  return safeError(event.locals.correlationId);
+};

@@ -1,0 +1,16 @@
+node_modules/
+.svelte-kit/
+build/
+coverage/
+playwright-report/
+test-results/
+.env
+.env.*
+!.env.example
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+.fixtures/
+.superpowers/
+.DS_Store
