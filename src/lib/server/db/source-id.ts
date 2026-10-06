@@ -20,6 +20,7 @@ export function createSourceId(identity: CardIdentity): string {
       (value) =>
         typeof value !== 'string' ||
         value.trim().length === 0 ||
+        value.includes('\0') ||
         value.length > 4096
     )
   ) {

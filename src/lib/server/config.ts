@@ -47,6 +47,7 @@ export function parseRuntimeConfig(
     throw new ConfigError('DATA_ENABLED');
   const dataEnabled = rawEnabled === 'true';
   const databaseUrl = env.DATABASE_URL;
+  let databaseToken: string | undefined;
   if (dataEnabled) {
     if (!databaseUrl) throw new ConfigError('DATABASE_URL');
     if (databaseUrl.startsWith('libsql://')) {
@@ -66,8 +67,8 @@ export function parseRuntimeConfig(
         !['', '/'].includes(target.pathname)
       )
         throw new ConfigError('DATABASE_URL');
-      if (!env.TURSO_AUTH_TOKEN?.trim())
-        throw new ConfigError('TURSO_AUTH_TOKEN');
+      databaseToken = env.TURSO_AUTH_TOKEN?.trim();
+      if (!databaseToken) throw new ConfigError('TURSO_AUTH_TOKEN');
     } else if (
       environment === 'production' ||
       !/^file:\.\/\.fixtures\/[a-zA-Z0-9_-]+\.db$/.test(databaseUrl)
@@ -83,7 +84,7 @@ export function parseRuntimeConfig(
     origin: url.origin,
     dataEnabled,
     databaseUrl: dataEnabled ? databaseUrl : undefined,
-    databaseToken: dataEnabled ? env.TURSO_AUTH_TOKEN : undefined,
+    databaseToken,
     revision
   };
 }

@@ -15,6 +15,8 @@ const createdAt = () =>
     .notNull()
     .default(sql`(unixepoch() * 1000)`);
 
+// Migration 0003 rejects whitespace-only/NUL identity text in user IDs, skill IDs and
+// canonical mistakes. Keep its hand-authored triggers during future table rebuilds.
 // Identity only. T010 selects and adds maintained auth-library tables and fields.
 export const users = sqliteTable(
   'users',
@@ -50,6 +52,7 @@ export const enrollments = sqliteTable(
       table.language
     ),
     check('enrollments_language', sql`${table.language} IN ('fr', 'de', 'en')`),
+    // Migration 0003 guards the supported pairs: fr A1, de/en A1/A2.
     check('enrollments_level', sql`${table.startingLevel} IN ('A1', 'A2')`),
     check(
       'enrollments_explanation',

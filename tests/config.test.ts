@@ -23,14 +23,15 @@ describe('runtime configuration', () => {
     }
   );
   it('rejects invalid production origin without disclosing the supplied value', () => {
-    const secret = 'https://user:private-answer@langlo.app/reset?token=secret';
+    const secret =
+      'https://synthetic-user:synthetic-password@langlo.app/reset?token=synthetic-query#synthetic-fragment';
     expect(() =>
       parseRuntimeConfig({ APP_ENV: 'production', APP_ORIGIN: secret })
     ).toThrow('Invalid APP_ORIGIN');
     try {
       parseRuntimeConfig({ APP_ENV: 'production', APP_ORIGIN: secret });
     } catch (error) {
-      expect(String(error)).not.toContain('private-answer');
+      expect(String(error)).toBe('ConfigError: Invalid APP_ORIGIN');
     }
   });
   it.each(['https://langlo.app', 'https://example.org'])(
@@ -63,6 +64,34 @@ describe('runtime configuration', () => {
       }).dataEnabled
     ).toBe(true);
   });
+  it('omits remote credentials from a selected local SQLite config', () => {
+    expect(
+      parseRuntimeConfig({
+        DATA_ENABLED: 'true',
+        DATABASE_URL: 'file:./.fixtures/local.db',
+        TURSO_AUTH_TOKEN: 'synthetic-unused-token'
+      }).databaseToken
+    ).toBeUndefined();
+  });
+  it('returns only a trimmed token for a validated remote libSQL config', () => {
+    expect(
+      parseRuntimeConfig({
+        APP_ENV: 'production',
+        APP_ORIGIN: 'https://langlo.app',
+        DATA_ENABLED: 'true',
+        DATABASE_URL: 'libsql://dedicated.example',
+        TURSO_AUTH_TOKEN: '  synthetic-remote-token\n'
+      }).databaseToken
+    ).toBe('synthetic-remote-token');
+  });
+  it.each([undefined, '', ' \t\n'])(
+    'rejects an absent or blank production origin without leaking its value',
+    (APP_ORIGIN) => {
+      expect(() =>
+        parseRuntimeConfig({ APP_ENV: 'production', APP_ORIGIN })
+      ).toThrow('Invalid APP_ORIGIN');
+    }
+  );
   it('requires a token for selected production libSQL without emitting it', () => {
     expect(() =>
       parseRuntimeConfig({

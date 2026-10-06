@@ -1,6 +1,6 @@
 # Runtime environment registry
 
-All application values are explicit private dynamic declarations in src/env.ts, exposed server-only through $app/env/private. hooks.server.ts validates them at the request boundary; config.ts is server-only. No provider/account identifiers are embedded in client assets.
+All application values are explicit private dynamic declarations in src/env.ts, exposed server-only through $app/env/private. hooks.server.ts validates them at the request boundary, except /health/live, which remains dependency-independent even when configuration is invalid. config.ts is server-only. No provider/account identifiers are embedded in client assets.
 
 | Variable                            | Purpose                        | Scope                      | Default and validation                                                                                                          | Invalid behavior                                                  |
 | ----------------------------------- | ------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |

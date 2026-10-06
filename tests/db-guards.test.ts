@@ -6,9 +6,11 @@ import {
   rm,
   symlink,
   unlink,
-  link
+  link,
+  realpath
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
+import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
@@ -84,7 +86,10 @@ describe('explicit disposable database target safety', () => {
     const target = await fixture();
     const outside = await mkdtemp(join(tmpdir(), 'langlo-outside-'));
     const sentinel = join(outside, 'sentinel.sqlite');
-    const rootLink = join(outside, 'root-link');
+    const rootLink = join(
+      await realpath(tmpdir()),
+      `langlo-fixture-${randomUUID()}`
+    );
     await writeFile(sentinel, 'must survive');
     try {
       await symlink(target.fixtureRoot, rootLink);
@@ -109,6 +114,7 @@ describe('explicit disposable database target safety', () => {
       await unlink(join(target.fixtureRoot, 'test.sqlite-wal'));
       expect(await readFile(sentinel, 'utf8')).toBe('must survive');
     } finally {
+      await unlink(rootLink);
       await rm(outside, { recursive: true, force: true });
     }
   });

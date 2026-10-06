@@ -56,7 +56,7 @@ test('server generates correlation ids and exposes honest readiness', async ({
   });
 });
 
-test('error page excludes tokens, submitted text and stack details', async ({
+test('missing page excludes tokens, submitted text and stack details', async ({
   page,
   request
 }) => {

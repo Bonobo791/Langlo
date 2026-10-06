@@ -89,6 +89,81 @@ describe('disposable libSQL migrations', () => {
       await rm(previous, { recursive: true, force: true });
     }
   });
+  it.each([
+    "UPDATE enrollments SET starting_level='A2' WHERE id='enrollment-a'",
+    'INSERT INTO users (id) VALUES (char(9))',
+    "INSERT INTO skills (id, language, level) VALUES (char(160), 'fr', 'A1')",
+    "INSERT INTO card_drafts (id, owner_id, language, skill_id, canonical_mistake, source_id, format, fields_json) VALUES ('invalid-card', 'learner-a', 'fr', 'fr-articles', char(9), 'langlo:v1:' || printf('%064d', 0), 'cloze', '{}')",
+    "INSERT INTO card_drafts (id, owner_id, language, skill_id, canonical_mistake, source_id, format, fields_json) VALUES ('invalid-card', 'learner-a', 'fr', 'fr-articles', 'x' || char(0), 'langlo:v1:' || printf('%064d', 0), 'cloze', '{}')"
+  ])(
+    'fails the review upgrade closed without rewriting invalid history: %s',
+    async (statement) => {
+      const target = await fixture();
+      const previous = await mkdtemp(join(tmpdir(), 'langlo-migrations-'));
+      try {
+        const journal = JSON.parse(
+          await readFile('drizzle/meta/_journal.json', 'utf8')
+        );
+        journal.entries = journal.entries.slice(0, 3);
+        await mkdir(join(previous, 'meta'));
+        await writeFile(
+          join(previous, 'meta/_journal.json'),
+          JSON.stringify(journal)
+        );
+        for (const entry of journal.entries) {
+          await copyFile(
+            `drizzle/${entry.tag}.sql`,
+            join(previous, `${entry.tag}.sql`)
+          );
+        }
+        await migrateFixtureDatabase(target, previous);
+        await seedStudy(target);
+        const old = await openFixtureDatabase(target);
+        await old.client.execute(statement);
+        const before = (await old.client.execute('SELECT * FROM attempts'))
+          .rows;
+        const enrollments = (
+          await old.client.execute('SELECT * FROM enrollments')
+        ).rows;
+        const cards = (await old.client.execute('SELECT * FROM card_drafts'))
+          .rows;
+        old.close();
+        await expect(migrateFixtureDatabase(target)).rejects.toThrow(
+          /CHECK|CONSTRAINT/i
+        );
+        const unchanged = await openFixtureDatabase(target);
+        try {
+          expect(
+            (
+              await unchanged.client.execute(
+                'SELECT count(*) AS n FROM __drizzle_migrations'
+              )
+            ).rows[0].n
+          ).toBe(3);
+          expect(
+            (await unchanged.client.execute('SELECT * FROM attempts')).rows
+          ).toEqual(before);
+          expect(
+            (await unchanged.client.execute('SELECT * FROM enrollments')).rows
+          ).toEqual(enrollments);
+          expect(
+            (await unchanged.client.execute('SELECT * FROM card_drafts')).rows
+          ).toEqual(cards);
+          expect(
+            (
+              await unchanged.client.execute(
+                "SELECT name FROM sqlite_master WHERE name LIKE '%review_identity%' OR name LIKE '%supported_track%'"
+              )
+            ).rows
+          ).toEqual([]);
+        } finally {
+          unchanged.close();
+        }
+      } finally {
+        await rm(previous, { recursive: true, force: true });
+      }
+    }
+  );
   it('creates authentic owner/versioned study and card tables on a clean database', async () => {
     const target = await fixture();
     await migrateFixtureDatabase(target);
@@ -160,7 +235,7 @@ describe('disposable libSQL migrations', () => {
             'SELECT count(*) AS count FROM __drizzle_migrations'
           )
         ).rows[0].count
-      ).toBe(3);
+      ).toBe(4);
     } finally {
       close();
     }

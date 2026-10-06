@@ -1,5 +1,6 @@
 import {
   mkdtemp,
+  realpath,
   writeFile,
   rm,
   readdir,
@@ -19,10 +20,23 @@ import {
 } from '../../src/lib/server/db/fixture-target.ts';
 
 export async function createDisposableFixture(): Promise<FixtureTarget> {
-  const fixtureRoot = await mkdtemp(join(tmpdir(), 'langlo-fixture-'));
-  await writeFile(join(fixtureRoot, fixtureMarkerName), fixtureMarkerContent, {
-    mode: 0o600
-  });
+  const fixtureRoot = await mkdtemp(
+    join(await realpath(tmpdir()), 'langlo-fixture-')
+  );
+  try {
+    await writeFile(
+      join(fixtureRoot, fixtureMarkerName),
+      fixtureMarkerContent,
+      {
+        mode: 0o600
+      }
+    );
+  } catch (error) {
+    // Only this call's newly created marker and empty root are owned here.
+    await rm(join(fixtureRoot, fixtureMarkerName), { force: true });
+    await rmdir(fixtureRoot);
+    throw error;
+  }
   return {
     fixtureRoot,
     databaseUrl: pathToFileURL(join(fixtureRoot, fixtureDatabaseName)).href

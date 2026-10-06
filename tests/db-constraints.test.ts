@@ -81,7 +81,7 @@ describe('actual SQLite ownership and version constraints', () => {
         "UPDATE enrollments SET language='es' WHERE id='enrollment-a'"
       ]) {
         await expect(client.execute(statement)).rejects.toThrow(
-          /CHECK|FOREIGN KEY|positive safe integer/i
+          /CHECK|FOREIGN KEY|positive safe integer|supported track/i
         );
       }
     } finally {

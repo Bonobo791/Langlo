@@ -14,7 +14,7 @@ Default 100 runs; explicit positive safe integer run count; signed 32-bit seed; 
 
 ## DB-01: private relations and deduplication
 
-Owner identity must match across enrollment, session, attempt, evaluation, card and delivery references. Versioned attempts retain their original content version on upgrades. SourceID identifies one owner/language/canonical mistake delivery identity despite concurrent retries. Actual local libSQL constraints and migrations are the oracle, with a fresh disposable fixture per generated run. Details and DB-specific evidence are recorded by T009.
+Owner identity must match across enrollment, session, attempt, evaluation, card and delivery references. Versioned attempts retain their original content version on upgrades. SourceID identifies one owner/language/skill/canonical mistake delivery identity despite concurrent retries. Actual local libSQL constraints and migrations are the oracle, with a fresh disposable fixture per generated run. Details and DB-specific evidence are recorded by T009.
 
 ## Limits
 
