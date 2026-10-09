@@ -27,4 +27,4 @@ Open-source alternatives were researched. No migration to an alternative and no 
 
 ## Anki profile setup
 
-Both learners already have separate Anki profiles. Retain a later per-learner way to connect to those existing profiles. Do not create profiles, connect to them now, or make setup a blocker for this scope review. Profile identity checks and delivery validation remain implementation-phase gates.
+Retain a later per-learner way to connect to Anki profiles. The application must not create profiles. Do not connect profiles during this scope review or make Anki setup a blocker. Profile identity checks and delivery validation remain implementation-phase gates.
