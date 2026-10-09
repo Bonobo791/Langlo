@@ -1,0 +1,18 @@
+{
+  "repository": "Bonobo791/Langlo",
+  "provider": "It's a Plan",
+  "destination": {
+    "teamId": 5,
+    "teamName": "Langlo",
+    "teamRef": "langlo",
+    "projectId": 13,
+    "projectKey": "LANGLO",
+    "qualifiedProjectRef": "langlo.LANGLO"
+  },
+  "addressing": {
+    "tool": "mcp__codex_apps__it_s_a_plan_mcp_get_project",
+    "projectKey": "LANGLO",
+    "verification": "Require returned teamId 5 and ref langlo.LANGLO; cross-check with mcp__codex_apps__it_s_a_plan_mcp_list_projects filtered by teamId 5."
+  },
+  "verifiedAt": "2026-10-09"
+}
