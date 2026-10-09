@@ -143,6 +143,25 @@ describe('synthetic Anki delivery spike', () => {
     expect(result.noteId).toBe(17);
   });
 
+  it('fails closed when lookup finds multiple notes for the stable identity', async () => {
+    let adds = 0;
+    const mock = adapter({
+      findSyntheticNotes: async ({ identity }) => [
+        { noteId: 17, identity },
+        { noteId: 18, identity }
+      ],
+      addSyntheticNote: async ({ identity }) => {
+        adds += 1;
+        return { noteId: 19, identity };
+      }
+    });
+
+    await expect(runSyntheticAnkiSpike(request, mock)).rejects.toThrow(
+      'Multiple synthetic notes match the stable identity; manual resolution is required.'
+    );
+    expect(adds).toBe(0);
+  });
+
   it('reuses an existing note after a duplicate add response', async () => {
     let lookups = 0;
     const mock = adapter({
@@ -198,6 +217,30 @@ describe('synthetic Anki delivery spike', () => {
     await expect(runSyntheticAnkiSpike(request, mock)).rejects.toThrow(
       'Synthetic add outcome is unknown; retry by looking up the same identity.'
     );
+    expect(adds).toBe(1);
+  });
+
+  it('preserves the unknown add outcome when timeout reconciliation lookup fails', async () => {
+    let lookups = 0;
+    let adds = 0;
+    const mock = adapter({
+      findSyntheticNotes: async () => {
+        lookups += 1;
+        if (lookups === 1) return [];
+        throw new Error('synthetic lookup unavailable');
+      },
+      addSyntheticNote: async () => {
+        adds += 1;
+        throw Object.assign(new Error('synthetic timeout'), {
+          code: 'TIMEOUT'
+        });
+      }
+    });
+
+    await expect(runSyntheticAnkiSpike(request, mock)).rejects.toThrow(
+      'Synthetic add outcome is unknown; recovery lookup failed. Retry lookup only; do not add again.'
+    );
+    expect(lookups).toBe(2);
     expect(adds).toBe(1);
   });
 

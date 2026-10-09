@@ -111,6 +111,17 @@ async function findNotes(
   return validateNotes(response, identity);
 }
 
+function oneMatch(
+  notes: Array<{ noteId: number; identity: string }>
+): { noteId: number; identity: string } | undefined {
+  if (notes.length > 1) {
+    fail(
+      'Multiple synthetic notes match the stable identity; manual resolution is required.'
+    );
+  }
+  return notes[0];
+}
+
 function result(
   profileId: string,
   identity: string,
@@ -146,9 +157,22 @@ async function addOrRecover(
       fail('Synthetic add failed.');
     }
 
-    const afterError = await findNotes(adapter, profileId, identity);
-    if (afterError.length > 0) {
-      return { noteId: afterError[0].noteId, reusedExisting: true };
+    let afterError: Array<{ noteId: number; identity: string }>;
+    try {
+      afterError = await findNotes(adapter, profileId, identity);
+    } catch {
+      if (code === 'TIMEOUT') {
+        fail(
+          'Synthetic add outcome is unknown; recovery lookup failed. Retry lookup only; do not add again.'
+        );
+      }
+      fail(
+        'Synthetic duplicate response could not be reconciled. Retry lookup only; do not add again.'
+      );
+    }
+    const existing = oneMatch(afterError);
+    if (existing) {
+      return { noteId: existing.noteId, reusedExisting: true };
     }
     if (code === 'TIMEOUT') {
       fail(
@@ -196,8 +220,9 @@ export async function runSyntheticAnkiSpike(
 
   const identity = identityFor(request);
   const existing = await findNotes(adapter, request.profileId, identity);
-  if (existing.length > 0) {
-    return result(request.profileId, identity, existing[0].noteId, true);
+  const match = oneMatch(existing);
+  if (match) {
+    return result(request.profileId, identity, match.noteId, true);
   }
 
   const outcome = await addOrRecover(
