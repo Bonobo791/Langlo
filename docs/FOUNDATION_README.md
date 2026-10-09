@@ -18,4 +18,4 @@ See docs/bootstrap.md, docs/bootstrap-tasks.md, docs/routes.md, docs/environment
 
 The setup follows App-Bootstrap-ADM at b658231eb20d8920a538ac355a4563c1e4c53096: https://github.com/Bonobo791/App-Bootstrap-ADM/tree/b658231eb20d8920a538ac355a4563c1e4c53096. It is guidance and templates, not an app scaffold. No Moderaty application source, branding, credentials or learner records were copied. BOOTSTRAP-LICENSE preserves attribution for the source guidance.
 
-The Langlo license is pending the owner’s choice. package.json remains UNLICENSED and private until that decision. The intended GitHub destination is Bonobo791/Langlo; no remote publication or deployment is implied by this local work.
+T001 records the owner’s selection of PolyForm Shield 1.0.0, matching Bonobo791/Moderaty’s LICENSE. package.json remains UNLICENSED and private until a separate license-file and metadata implementation. The repository is Bonobo791/Langlo; no remote publication or deployment is implied by this local work.

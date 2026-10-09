@@ -1,14 +1,14 @@
 # Exact foundation contracts
 
-Plan identity: language-app-adm-20261006. This record executes only T006–T009. Publication, license, authentication, real providers, curricula and Windows remain separate gates.
+Plan identity: language-app-adm-20261006. This record executes only T006–T009. T001 has since selected PolyForm Shield 1.0.0; license-file implementation, publication, authentication, real providers, curricula and Windows remain separate gates.
 
 ## T006 · C01/C02/C08/C09/A01: neutral repository and toolchain
 
 Files: AGENTS.md, package.json/package-lock.json, .node-version, .gitignore, .env.example, tsconfig.json, vite.config.ts, README.md, BOOTSTRAP-LICENSE and this status record. One local dev repository with intended origin Bonobo791/Langlo; no prior app files, brand, learner rows or production configuration copied. Hand-authored app code; framework-generated node_modules/$app and .svelte-kit are ignored.
 
-Configuration: Node 24.19.0, npm 11.9.0, exact stable dependency pins. Kit 3 uses vite.config.ts and $app/tsconfig, superseding the plan's old file contract. License remains owner decision: private/UNLICENSED metadata, no fabricated LICENSE choice.
+Configuration: Node 24.19.0, npm 11.9.0, exact stable dependency pins. Kit 3 uses vite.config.ts and $app/tsconfig, superseding the plan's old file contract. At this T006 checkpoint, package metadata was private/UNLICENSED and no LICENSE file was created. T001 records the later PolyForm Shield 1.0.0 selection; implementing the license file and updating metadata remain separate work.
 
-Verification: clean local clone npm ci must preserve lockfile; npm run check and npm run build must compile the real Node adapter without provider credentials. Inspect tracked files and generated client output for copied names/IDs/credentials. Positive: reproducible frozen install/type/build. Negative: unused billing/YouTube/analytics/providers absent, real .env/DB/build ignored. Evidence T006.md; public license/publication pending.
+Verification: clean local clone npm ci must preserve lockfile; npm run check and npm run build must compile the real Node adapter without provider credentials. Inspect tracked files and generated client output for copied names/IDs/credentials. Positive: reproducible frozen install/type/build. Negative: unused billing/YouTube/analytics/providers absent, real .env/DB/build ignored. Evidence T006.md; selected license implementation and publication remain pending.
 
 ## T007 · C03/C06/C07/T01/T02/T03/T04/T05/T06/T07: quality harness
 
