@@ -115,11 +115,66 @@ describe('synthetic Anki delivery spike', () => {
     );
   });
 
-  it('derives the same stable identity for the same learner, profile, and source', async () => {
+  it('keeps stable identity when the selected profile is renamed', async () => {
     const first = await runSyntheticAnkiSpike(request, adapter());
-    const second = await runSyntheticAnkiSpike(request, adapter());
-    expect(first.noteIdentity).toBe(second.noteIdentity);
+    const renamed = await runSyntheticAnkiSpike(
+      { ...request, profileId: 'synthetic-profile-renamed' },
+      adapter()
+    );
+    const otherLearner = await runSyntheticAnkiSpike(
+      { ...request, learnerId: 'synthetic-learner-b' },
+      adapter()
+    );
+
+    expect(first.noteIdentity).toBe(renamed.noteIdentity);
     expect(first.noteIdentity).toMatch(/^langlo:[a-f0-9]{64}$/);
+    expect(first.noteIdentity).not.toBe(otherLearner.noteIdentity);
+  });
+
+  it('checks the active profile again before adding', async () => {
+    let inspections = 0;
+    let adds = 0;
+    const mock = adapter({
+      inspectSyntheticProfile: async (profileId) => ({
+        state: 'open',
+        profileId: ++inspections === 1 ? profileId : 'synthetic-profile-other',
+        permission: 'granted'
+      }),
+      addSyntheticNote: async ({ identity }) => {
+        adds += 1;
+        return { noteId: 17, identity };
+      }
+    });
+
+    await expect(runSyntheticAnkiSpike(request, mock)).rejects.toThrow(
+      'Selected synthetic profile is unavailable.'
+    );
+    expect(inspections).toBe(2);
+    expect(adds).toBe(0);
+  });
+
+  it('rechecks the active profile before timeout recovery lookup', async () => {
+    let inspections = 0;
+    let adds = 0;
+    const mock = adapter({
+      inspectSyntheticProfile: async (profileId) => ({
+        state: 'open',
+        profileId: ++inspections < 3 ? profileId : 'synthetic-profile-other',
+        permission: 'granted'
+      }),
+      addSyntheticNote: async () => {
+        adds += 1;
+        throw Object.assign(new Error('synthetic timeout'), {
+          code: 'TIMEOUT'
+        });
+      }
+    });
+
+    await expect(runSyntheticAnkiSpike(request, mock)).rejects.toThrow(
+      'Synthetic add outcome is unknown; recovery lookup failed. Retry lookup only; do not add again.'
+    );
+    expect(inspections).toBe(3);
+    expect(adds).toBe(1);
   });
 
   it('looks up by stable identity before adding a synthetic note', async () => {
