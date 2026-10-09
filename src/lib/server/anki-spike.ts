@@ -127,6 +127,45 @@ function result(
   };
 }
 
+async function addOrRecover(
+  adapter: SyntheticAnkiAdapter,
+  profileId: string,
+  identity: string,
+  fields: Record<string, string>
+): Promise<{ noteId: number; reusedExisting: boolean }> {
+  let added: unknown;
+  try {
+    added = await adapter.addSyntheticNote({
+      profileId,
+      identity,
+      fields: { ...fields }
+    });
+  } catch (error) {
+    const code = isRecord(error) ? error.code : undefined;
+    if (code !== 'DUPLICATE' && code !== 'TIMEOUT') {
+      fail('Synthetic add failed.');
+    }
+
+    const afterError = await findNotes(adapter, profileId, identity);
+    if (afterError.length > 0) {
+      return { noteId: afterError[0].noteId, reusedExisting: true };
+    }
+    if (code === 'TIMEOUT') {
+      fail(
+        'Synthetic add outcome is unknown; retry by looking up the same identity.'
+      );
+    }
+    fail('Synthetic duplicate response had no matching note.');
+  }
+
+  try {
+    const note = syntheticNote(added, identity);
+    return { noteId: note.noteId, reusedExisting: false };
+  } catch {
+    fail('Malformed synthetic add response.');
+  }
+}
+
 /** Run only against an injected synthetic adapter; this function does not implement a real Anki transport. */
 export async function runSyntheticAnkiSpike(
   request: SyntheticAnkiRequest,
@@ -161,36 +200,16 @@ export async function runSyntheticAnkiSpike(
     return result(request.profileId, identity, existing[0].noteId, true);
   }
 
-  let added: unknown;
-  try {
-    added = await adapter.addSyntheticNote({
-      profileId: request.profileId,
-      identity,
-      fields: { ...request.fields }
-    });
-  } catch (error) {
-    const code = isRecord(error) ? error.code : undefined;
-    if (code !== 'DUPLICATE' && code !== 'TIMEOUT') {
-      fail('Synthetic add failed.');
-    }
-
-    const afterError = await findNotes(adapter, request.profileId, identity);
-    if (afterError.length > 0) {
-      return result(request.profileId, identity, afterError[0].noteId, true);
-    }
-    if (code === 'TIMEOUT') {
-      fail(
-        'Synthetic add outcome is unknown; retry by looking up the same identity.'
-      );
-    }
-    fail('Synthetic duplicate response had no matching note.');
-  }
-
-  let note: { noteId: number; identity: string };
-  try {
-    note = syntheticNote(added, identity);
-  } catch {
-    fail('Malformed synthetic add response.');
-  }
-  return result(request.profileId, identity, note.noteId, false);
+  const outcome = await addOrRecover(
+    adapter,
+    request.profileId,
+    identity,
+    request.fields
+  );
+  return result(
+    request.profileId,
+    identity,
+    outcome.noteId,
+    outcome.reusedExisting
+  );
 }
