@@ -38,11 +38,11 @@ const ratings: Record<RatingName, Grade> = {
   easy: Rating.Easy
 };
 
-function exceedsTextLimit(value: string): boolean {
+function exceedsCodePointLimit(value: string, limit: number): boolean {
   const codePoints = value[Symbol.iterator]();
   let count = 0;
   while (!codePoints.next().done) {
-    if (++count > maxCardTextLength) return true;
+    if (++count > limit) return true;
   }
   return false;
 }
@@ -80,8 +80,8 @@ function validateContent(kind: unknown, content: unknown): void {
       typeof content.back !== 'string' ||
       !content.front.trim() ||
       !content.back.trim() ||
-      exceedsTextLimit(content.front) ||
-      exceedsTextLimit(content.back)
+      exceedsCodePointLimit(content.front, maxCardTextLength) ||
+      exceedsCodePointLimit(content.back, maxCardTextLength)
     )
       throw new FlashcardError('INVALID_CONTENT');
   } else if (kind === 'cloze') {
@@ -91,7 +91,7 @@ function validateContent(kind: unknown, content: unknown): void {
       !content.text.trim()
     )
       throw new FlashcardError('INVALID_CONTENT');
-    if (exceedsTextLimit(content.text))
+    if (exceedsCodePointLimit(content.text, maxCardTextLength))
       throw new FlashcardError('INVALID_CONTENT');
     const matches = content.text.match(/\{\{c1::[^{}]+\}\}/g) ?? [];
     if (
@@ -209,7 +209,7 @@ export async function createDeck(
   session: LearnerSession,
   input: { id: string; name: string }
 ) {
-  if (!input.name.trim() || input.name.length > 160)
+  if (!input.name.trim() || exceedsCodePointLimit(input.name, 160))
     throw new FlashcardError('INVALID_DECK');
   await client.execute({
     sql: 'INSERT INTO native_flashcard_decks (id, owner_id, name) VALUES (?, ?, ?)',

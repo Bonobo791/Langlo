@@ -38,6 +38,28 @@ function testSourceId(identity: string): string {
 }
 
 describe('native flashcard persistence feasibility', () => {
+  it('counts supplementary-plane deck names as Unicode code points at the storage limit', async () => {
+    const target = await fixture();
+    const learner = testSession('learner-a');
+    const db = await openFixtureDatabase(target);
+    try {
+      await expect(
+        createDeck(db.client, learner, {
+          id: 'deck-10000000-0000-4000-8000-000000000020',
+          name: '𐐷'.repeat(160)
+        })
+      ).resolves.toBeUndefined();
+      await expect(
+        createDeck(db.client, learner, {
+          id: 'deck-10000000-0000-4000-8000-000000000021',
+          name: '𐐷'.repeat(161)
+        })
+      ).rejects.toMatchObject({ code: 'INVALID_DECK' });
+    } finally {
+      db.close();
+    }
+  });
+
   it('persists an approved Basic note across fresh test sessions and scopes it to its owner', async () => {
     const target = await fixture();
     const ownerA = testSession('learner-a');
