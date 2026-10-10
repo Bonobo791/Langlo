@@ -22,7 +22,8 @@ CREATE TABLE `native_flashcard_notes` (
 	FOREIGN KEY (`deck_id`,`owner_id`) REFERENCES `native_flashcard_decks`(`id`,`owner_id`) ON UPDATE no action ON DELETE cascade,
 	CONSTRAINT "native_flashcard_notes_kind" CHECK("native_flashcard_notes"."kind" IN ('basic', 'cloze')),
 	CONSTRAINT "native_flashcard_notes_status" CHECK("native_flashcard_notes"."status" IN ('draft', 'approved', 'rejected')),
-	CONSTRAINT "native_flashcard_notes_content_json" CHECK(json_valid("native_flashcard_notes"."content_json"))
+	CONSTRAINT "native_flashcard_notes_content_json" CHECK(json_valid("native_flashcard_notes"."content_json")),
+	CONSTRAINT "native_flashcard_notes_content_shape" CHECK(("native_flashcard_notes"."kind" = 'basic' AND json_type("native_flashcard_notes"."content_json") = 'object' AND json_type("native_flashcard_notes"."content_json", '$.front') = 'text' AND json_type("native_flashcard_notes"."content_json", '$.back') = 'text' AND length(trim(json_extract("native_flashcard_notes"."content_json", '$.front'), char(9) || char(10) || char(11) || char(12) || char(13) || char(32) || char(160) || char(5760) || char(8192) || char(8193) || char(8194) || char(8195) || char(8196) || char(8197) || char(8198) || char(8199) || char(8200) || char(8201) || char(8202) || char(8232) || char(8233) || char(8239) || char(8287) || char(12288) || char(65279))) BETWEEN 1 AND 4096 AND length(trim(json_extract("native_flashcard_notes"."content_json", '$.back'), char(9) || char(10) || char(11) || char(12) || char(13) || char(32) || char(160) || char(5760) || char(8192) || char(8193) || char(8194) || char(8195) || char(8196) || char(8197) || char(8198) || char(8199) || char(8200) || char(8201) || char(8202) || char(8232) || char(8233) || char(8239) || char(8287) || char(12288) || char(65279))) BETWEEN 1 AND 4096 AND json_remove("native_flashcard_notes"."content_json", '$.front', '$.back') = '{}') OR ("native_flashcard_notes"."kind" = 'cloze' AND json_type("native_flashcard_notes"."content_json") = 'object' AND json_type("native_flashcard_notes"."content_json", '$.text') = 'text' AND length(trim(json_extract("native_flashcard_notes"."content_json", '$.text'), char(9) || char(10) || char(11) || char(12) || char(13) || char(32) || char(160) || char(5760) || char(8192) || char(8193) || char(8194) || char(8195) || char(8196) || char(8197) || char(8198) || char(8199) || char(8200) || char(8201) || char(8202) || char(8232) || char(8233) || char(8239) || char(8287) || char(12288) || char(65279))) BETWEEN 1 AND 4096 AND json_remove("native_flashcard_notes"."content_json", '$.text') = '{}'))
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `native_flashcard_notes_id_owner_unique` ON `native_flashcard_notes` (`id`,`owner_id`);--> statement-breakpoint
@@ -41,15 +42,15 @@ CREATE TABLE `native_flashcard_review_events` (
 	PRIMARY KEY(`owner_id`, `id`),
 	FOREIGN KEY (`card_id`,`owner_id`) REFERENCES `native_flashcards`(`id`,`owner_id`) ON UPDATE no action ON DELETE cascade,
 	CONSTRAINT "native_flashcard_review_events_revision" CHECK("native_flashcard_review_events"."expected_revision" >= 0),
+	CONSTRAINT "native_flashcard_review_events_id_nonempty" CHECK(length(trim("native_flashcard_review_events"."id", char(9) || char(10) || char(11) || char(12) || char(13) || char(32) || char(160) || char(5760) || char(8192) || char(8193) || char(8194) || char(8195) || char(8196) || char(8197) || char(8198) || char(8199) || char(8200) || char(8201) || char(8202) || char(8232) || char(8233) || char(8239) || char(8287) || char(12288) || char(65279))) BETWEEN 1 AND 256 AND length("native_flashcard_review_events"."id") <= 256),
 	CONSTRAINT "native_flashcard_review_events_rating" CHECK("native_flashcard_review_events"."rating" IN ('again', 'hard', 'good', 'easy')),
 	CONSTRAINT "native_flashcard_review_events_parameters_json" CHECK(json_valid("native_flashcard_review_events"."parameters_json")),
 	CONSTRAINT "native_flashcard_review_events_result_json" CHECK(json_valid("native_flashcard_review_events"."result_json"))
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `native_flashcard_review_events_idempotency` ON `native_flashcard_review_events` (`owner_id`,`id`);--> statement-breakpoint
 CREATE INDEX `native_flashcard_review_events_card_time` ON `native_flashcard_review_events` (`owner_id`,`card_id`,`reviewed_at`);--> statement-breakpoint
 CREATE TRIGGER `native_flashcard_review_events_no_update` BEFORE UPDATE ON `native_flashcard_review_events` BEGIN SELECT RAISE(ABORT, 'native flashcard review history is append-only'); END;--> statement-breakpoint
-CREATE TRIGGER `native_flashcard_review_events_no_delete` BEFORE DELETE ON `native_flashcard_review_events` BEGIN SELECT RAISE(ABORT, 'native flashcard review history is append-only'); END;--> statement-breakpoint
+CREATE TRIGGER `native_flashcard_review_events_no_delete` BEFORE DELETE ON `native_flashcard_review_events` WHEN EXISTS (SELECT 1 FROM `native_flashcards` WHERE `id` = OLD.`card_id` AND `owner_id` = OLD.`owner_id`) BEGIN SELECT RAISE(ABORT, 'native flashcard review history is append-only'); END;--> statement-breakpoint
 CREATE TABLE `native_flashcards` (
 	`id` text PRIMARY KEY NOT NULL,
 	`owner_id` text NOT NULL,

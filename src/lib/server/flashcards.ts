@@ -1,10 +1,12 @@
 import {
   createEmptyCard,
   fsrs,
+  checkParameters,
   generatorParameters,
   Rating,
   type Card,
-  type Grade
+  type Grade,
+  type FSRSParameters
 } from 'ts-fsrs';
 import type { Client } from '@libsql/client';
 
@@ -15,11 +17,19 @@ export interface LearnerSession {
 type BasicContent = { front: string; back: string };
 type ClozeContent = { text: string };
 type Content = BasicContent | ClozeContent;
+type CreateNoteInput = {
+  id: string;
+  sourceId: string;
+  deckId: string;
+} & (
+  | { kind: 'basic'; content: BasicContent }
+  | { kind: 'cloze'; content: ClozeContent }
+);
 type RatingName = 'again' | 'hard' | 'good' | 'easy';
 
 const schedulerVersion = 'ts-fsrs@5.4.2';
 const parameters = generatorParameters();
-const scheduler = fsrs(parameters);
+const maxCardTextLength = 4096;
 const ratings: Record<RatingName, Grade> = {
   again: Rating.Again,
   hard: Rating.Hard,
@@ -45,32 +55,133 @@ export class FlashcardError extends Error {
   }
 }
 
-function validateContent(kind: 'basic' | 'cloze', content: Content): void {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function validateContent(kind: unknown, content: unknown): void {
+  if (!isRecord(content)) throw new FlashcardError('INVALID_CONTENT');
+
   if (kind === 'basic') {
-    const value = content as BasicContent;
-    if (!value.front.trim() || !value.back.trim())
+    if (
+      Object.keys(content).length !== 2 ||
+      typeof content.front !== 'string' ||
+      typeof content.back !== 'string' ||
+      !content.front.trim() ||
+      !content.back.trim() ||
+      content.front.length > maxCardTextLength ||
+      content.back.length > maxCardTextLength
+    )
       throw new FlashcardError('INVALID_CONTENT');
-  } else {
-    const value = content as ClozeContent;
-    const matches = value.text.match(/\{\{c1::[^{}]+\}\}/g) ?? [];
+  } else if (kind === 'cloze') {
+    if (
+      Object.keys(content).length !== 1 ||
+      typeof content.text !== 'string' ||
+      !content.text.trim()
+    )
+      throw new FlashcardError('INVALID_CONTENT');
+    if (content.text.length > maxCardTextLength)
+      throw new FlashcardError('INVALID_CONTENT');
+    const matches = content.text.match(/\{\{c1::[^{}]+\}\}/g) ?? [];
     if (
       !matches.length ||
-      /\{\{c\d+::/.test(value.text.replace(/\{\{c1::[^{}]+\}\}/g, ''))
+      /\{\{c\d+::/.test(content.text.replace(/\{\{c1::[^{}]+\}\}/g, ''))
     ) {
       throw new FlashcardError('INVALID_CLOZE');
     }
+  } else {
+    throw new FlashcardError('INVALID_CONTENT');
+  }
+}
+
+function readCardScheduler(
+  version: unknown,
+  serializedParameters: string
+): { scheduler: ReturnType<typeof fsrs>; parameters: FSRSParameters } {
+  if (version !== schedulerVersion)
+    throw new FlashcardError('UNSUPPORTED_SCHEDULER_VERSION');
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(serializedParameters);
+  } catch {
+    throw new FlashcardError('INVALID_SCHEDULER_STATE');
+  }
+  if (!isRecord(parsed)) throw new FlashcardError('INVALID_SCHEDULER_STATE');
+
+  const {
+    request_retention,
+    maximum_interval,
+    w,
+    enable_fuzz,
+    enable_short_term,
+    learning_steps,
+    relearning_steps
+  } = parsed;
+  if (
+    typeof request_retention !== 'number' ||
+    !Number.isFinite(request_retention) ||
+    request_retention <= 0 ||
+    request_retention > 1 ||
+    typeof maximum_interval !== 'number' ||
+    !Number.isFinite(maximum_interval) ||
+    maximum_interval <= 0 ||
+    !Array.isArray(w) ||
+    ![17, 19, 21].includes(w.length) ||
+    w.some(
+      (weight) => typeof weight !== 'number' || !Number.isFinite(weight)
+    ) ||
+    typeof enable_fuzz !== 'boolean' ||
+    typeof enable_short_term !== 'boolean' ||
+    !Array.isArray(learning_steps) ||
+    !learning_steps.every(
+      (step) => typeof step === 'string' && /^\d+(?:m|h|d)$/.test(step)
+    ) ||
+    !Array.isArray(relearning_steps) ||
+    !relearning_steps.every(
+      (step) => typeof step === 'string' && /^\d+(?:m|h|d)$/.test(step)
+    )
+  ) {
+    throw new FlashcardError('INVALID_SCHEDULER_STATE');
+  }
+
+  try {
+    const stored = parsed as unknown as FSRSParameters;
+    checkParameters(stored.w);
+    const normalized = generatorParameters(stored);
+    return { scheduler: fsrs(normalized), parameters: normalized };
+  } catch {
+    throw new FlashcardError('INVALID_SCHEDULER_STATE');
   }
 }
 
 function decodeCard(serialized: string): Card {
-  const card = JSON.parse(serialized) as Card & {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(serialized);
+  } catch {
+    throw new FlashcardError('INVALID_CARD_STATE');
+  }
+  if (!isRecord(parsed) || typeof parsed.due !== 'string')
+    throw new FlashcardError('INVALID_CARD_STATE');
+  const card = parsed as unknown as Card & {
     due: string;
     last_review?: string;
   };
+  const due = new Date(card.due);
+  const lastReview = card.last_review ? new Date(card.last_review) : undefined;
+  if (
+    Number.isNaN(due.getTime()) ||
+    (card.last_review !== undefined &&
+      (typeof card.last_review !== 'string' ||
+        Number.isNaN(lastReview?.getTime())))
+  ) {
+    throw new FlashcardError('INVALID_CARD_STATE');
+  }
   return {
     ...card,
-    due: new Date(card.due),
-    last_review: card.last_review ? new Date(card.last_review) : undefined
+    due,
+    last_review: lastReview
   };
 }
 
@@ -98,13 +209,7 @@ export async function createDeck(
 export async function createNote(
   client: Client,
   session: LearnerSession,
-  input: {
-    id: string;
-    sourceId: string;
-    deckId: string;
-    kind: 'basic' | 'cloze';
-    content: Content;
-  }
+  input: CreateNoteInput
 ) {
   validateContent(input.kind, input.content);
   const cardId = `card:${input.id}`;
@@ -198,6 +303,13 @@ export async function submitReview(
     rating: RatingName;
   }
 ) {
+  if (
+    typeof input.submissionId !== 'string' ||
+    input.submissionId.trim().length < 1 ||
+    input.submissionId.length > 256
+  ) {
+    throw new FlashcardError('INVALID_SUBMISSION_ID');
+  }
   const tx = await beginWrite(client);
   try {
     const previous = await tx.execute({
@@ -223,7 +335,7 @@ export async function submitReview(
     }
 
     const found = await tx.execute({
-      sql: 'SELECT c.state_json, c.revision, c.scheduler_version, n.status FROM native_flashcards c JOIN native_flashcard_notes n ON n.id = c.note_id AND n.owner_id = c.owner_id WHERE c.id = ? AND c.owner_id = ?',
+      sql: 'SELECT c.state_json, c.revision, c.scheduler_version, c.parameters_json, n.status FROM native_flashcards c JOIN native_flashcard_notes n ON n.id = c.note_id AND n.owner_id = c.owner_id WHERE c.id = ? AND c.owner_id = ?',
       args: [input.cardId, session.userId]
     });
     const cardRow = found.rows[0];
@@ -232,8 +344,13 @@ export async function submitReview(
     if (Number(cardRow.revision) !== input.expectedRevision)
       throw new FlashcardError('STALE_REVIEW');
 
+    const cardScheduler = readCardScheduler(
+      cardRow.scheduler_version,
+      String(cardRow.parameters_json)
+    );
+
     const reviewedAt = new Date();
-    const updated = scheduler.next(
+    const updated = cardScheduler.scheduler.next(
       decodeCard(String(cardRow.state_json)),
       reviewedAt,
       ratings[input.rating]
@@ -261,8 +378,8 @@ export async function submitReview(
         input.expectedRevision,
         input.rating,
         reviewedAt.getTime(),
-        schedulerVersion,
-        JSON.stringify(parameters),
+        String(cardRow.scheduler_version),
+        JSON.stringify(cardScheduler.parameters),
         JSON.stringify(result)
       ]
     });

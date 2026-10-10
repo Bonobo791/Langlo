@@ -15,6 +15,29 @@ const createdAt = () =>
     .notNull()
     .default(sql`(unixepoch() * 1000)`);
 
+// Match String.prototype.trim() for text fields enforced in application code.
+const flashcardTrimWhitespace = sql.raw(
+  [
+    9,
+    10,
+    11,
+    12,
+    13,
+    32,
+    160,
+    5760,
+    ...Array.from({ length: 11 }, (_, i) => 8192 + i),
+    8232,
+    8233,
+    8239,
+    8287,
+    12288,
+    65279
+  ]
+    .map((codePoint) => `char(${codePoint})`)
+    .join(' || ')
+);
+
 // Migration 0003 rejects whitespace-only/NUL identity text in user IDs, skill IDs and
 // canonical mistakes. Keep its hand-authored triggers during future table rebuilds.
 // Identity only. T010 selects and adds maintained auth-library tables and fields.
@@ -561,6 +584,10 @@ export const nativeFlashcardNotes = sqliteTable(
     check(
       'native_flashcard_notes_content_json',
       sql`json_valid(${table.contentJson})`
+    ),
+    check(
+      'native_flashcard_notes_content_shape',
+      sql`(${table.kind} = 'basic' AND json_type(${table.contentJson}) = 'object' AND json_type(${table.contentJson}, '$.front') = 'text' AND json_type(${table.contentJson}, '$.back') = 'text' AND length(trim(json_extract(${table.contentJson}, '$.front'), ${flashcardTrimWhitespace})) BETWEEN 1 AND 4096 AND length(trim(json_extract(${table.contentJson}, '$.back'), ${flashcardTrimWhitespace})) BETWEEN 1 AND 4096 AND json_remove(${table.contentJson}, '$.front', '$.back') = '{}') OR (${table.kind} = 'cloze' AND json_type(${table.contentJson}) = 'object' AND json_type(${table.contentJson}, '$.text') = 'text' AND length(trim(json_extract(${table.contentJson}, '$.text'), ${flashcardTrimWhitespace})) BETWEEN 1 AND 4096 AND json_remove(${table.contentJson}, '$.text') = '{}')`
     )
   ]
 );
@@ -610,6 +637,9 @@ export const nativeFlashcards = sqliteTable(
   ]
 );
 
+// Migration 0004 adds hand-authored append-only BEFORE UPDATE/DELETE triggers.
+// Preserve both triggers in future table rebuilds; DELETE is permitted only
+// after the parent card has been removed by the intentional owner-data cascade.
 export const nativeFlashcardReviewEvents = sqliteTable(
   'native_flashcard_review_events',
   {
@@ -627,10 +657,6 @@ export const nativeFlashcardReviewEvents = sqliteTable(
   },
   (table) => [
     primaryKey({ columns: [table.ownerId, table.id] }),
-    uniqueIndex('native_flashcard_review_events_idempotency').on(
-      table.ownerId,
-      table.id
-    ),
     foreignKey({
       columns: [table.cardId, table.ownerId],
       foreignColumns: [nativeFlashcards.id, nativeFlashcards.ownerId]
@@ -643,6 +669,10 @@ export const nativeFlashcardReviewEvents = sqliteTable(
     check(
       'native_flashcard_review_events_revision',
       sql`${table.expectedRevision} >= 0`
+    ),
+    check(
+      'native_flashcard_review_events_id_nonempty',
+      sql`length(trim(${table.id}, ${flashcardTrimWhitespace})) BETWEEN 1 AND 256 AND length(${table.id}) <= 256`
     ),
     check(
       'native_flashcard_review_events_rating',

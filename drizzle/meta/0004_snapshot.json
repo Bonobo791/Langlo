@@ -918,6 +918,10 @@
         "native_flashcard_notes_content_json": {
           "name": "native_flashcard_notes_content_json",
           "value": "json_valid(\"native_flashcard_notes\".\"content_json\")"
+        },
+        "native_flashcard_notes_content_shape": {
+          "name": "native_flashcard_notes_content_shape",
+          "value": "(\"native_flashcard_notes\".\"kind\" = 'basic' AND json_type(\"native_flashcard_notes\".\"content_json\") = 'object' AND json_type(\"native_flashcard_notes\".\"content_json\", '$.front') = 'text' AND json_type(\"native_flashcard_notes\".\"content_json\", '$.back') = 'text' AND length(trim(json_extract(\"native_flashcard_notes\".\"content_json\", '$.front'), char(9) || char(10) || char(11) || char(12) || char(13) || char(32) || char(160) || char(5760) || char(8192) || char(8193) || char(8194) || char(8195) || char(8196) || char(8197) || char(8198) || char(8199) || char(8200) || char(8201) || char(8202) || char(8232) || char(8233) || char(8239) || char(8287) || char(12288) || char(65279))) BETWEEN 1 AND 4096 AND length(trim(json_extract(\"native_flashcard_notes\".\"content_json\", '$.back'), char(9) || char(10) || char(11) || char(12) || char(13) || char(32) || char(160) || char(5760) || char(8192) || char(8193) || char(8194) || char(8195) || char(8196) || char(8197) || char(8198) || char(8199) || char(8200) || char(8201) || char(8202) || char(8232) || char(8233) || char(8239) || char(8287) || char(12288) || char(65279))) BETWEEN 1 AND 4096 AND json_remove(\"native_flashcard_notes\".\"content_json\", '$.front', '$.back') = '{}') OR (\"native_flashcard_notes\".\"kind\" = 'cloze' AND json_type(\"native_flashcard_notes\".\"content_json\") = 'object' AND json_type(\"native_flashcard_notes\".\"content_json\", '$.text') = 'text' AND length(trim(json_extract(\"native_flashcard_notes\".\"content_json\", '$.text'), char(9) || char(10) || char(11) || char(12) || char(13) || char(32) || char(160) || char(5760) || char(8192) || char(8193) || char(8194) || char(8195) || char(8196) || char(8197) || char(8198) || char(8199) || char(8200) || char(8201) || char(8202) || char(8232) || char(8233) || char(8239) || char(8287) || char(12288) || char(65279))) BETWEEN 1 AND 4096 AND json_remove(\"native_flashcard_notes\".\"content_json\", '$.text') = '{}')"
         }
       }
     },
@@ -989,11 +993,6 @@
         }
       },
       "indexes": {
-        "native_flashcard_review_events_idempotency": {
-          "name": "native_flashcard_review_events_idempotency",
-          "columns": ["owner_id", "id"],
-          "isUnique": true
-        },
         "native_flashcard_review_events_card_time": {
           "name": "native_flashcard_review_events_card_time",
           "columns": ["owner_id", "card_id", "reviewed_at"],
@@ -1034,6 +1033,10 @@
         "native_flashcard_review_events_result_json": {
           "name": "native_flashcard_review_events_result_json",
           "value": "json_valid(\"native_flashcard_review_events\".\"result_json\")"
+        },
+        "native_flashcard_review_events_id_nonempty": {
+          "name": "native_flashcard_review_events_id_nonempty",
+          "value": "length(trim(\"native_flashcard_review_events\".\"id\", char(9) || char(10) || char(11) || char(12) || char(13) || char(32) || char(160) || char(5760) || char(8192) || char(8193) || char(8194) || char(8195) || char(8196) || char(8197) || char(8198) || char(8199) || char(8200) || char(8201) || char(8202) || char(8232) || char(8233) || char(8239) || char(8287) || char(12288) || char(65279))) BETWEEN 1 AND 256 AND length(\"native_flashcard_review_events\".\"id\") <= 256"
         }
       }
     },

@@ -242,6 +242,33 @@ describe('disposable libSQL migrations', () => {
     }
   });
 
+  it('keeps review-history primary keys and append-only triggers without a duplicate unique index', async () => {
+    const target = await fixture();
+    await migrateFixtureDatabase(target);
+    const { client, close } = await openFixtureDatabase(target);
+    try {
+      expect(
+        (
+          await client.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'native_flashcard_review_events_idempotency'"
+          )
+        ).rows
+      ).toEqual([]);
+      expect(
+        (
+          await client.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'trigger' AND name IN ('native_flashcard_review_events_no_update', 'native_flashcard_review_events_no_delete') ORDER BY name"
+          )
+        ).rows.map((row) => row.name)
+      ).toEqual([
+        'native_flashcard_review_events_no_delete',
+        'native_flashcard_review_events_no_update'
+      ]);
+    } finally {
+      close();
+    }
+  });
+
   it('upgrades the supported initial schema without changing owned attempts or evaluations', async () => {
     const target = await fixture();
     const previous = await mkdtemp(join(tmpdir(), 'langlo-migrations-'));
