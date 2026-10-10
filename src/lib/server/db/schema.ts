@@ -496,3 +496,165 @@ export const deliveries = sqliteTable(
     )
   ]
 );
+
+export const nativeFlashcardDecks = sqliteTable(
+  'native_flashcard_decks',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    createdAt: createdAt()
+  },
+  (table) => [
+    uniqueIndex('native_flashcard_decks_id_owner_unique').on(
+      table.id,
+      table.ownerId
+    ),
+    index('native_flashcard_decks_owner').on(table.ownerId),
+    check(
+      'native_flashcard_decks_name_nonempty',
+      sql`length(trim(${table.name})) BETWEEN 1 AND 160`
+    )
+  ]
+);
+
+export const nativeFlashcardNotes = sqliteTable(
+  'native_flashcard_notes',
+  {
+    id: text('id').primaryKey(),
+    sourceId: text('source_id').notNull(),
+    ownerId: text('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    deckId: text('deck_id').notNull(),
+    kind: text('kind', { enum: ['basic', 'cloze'] }).notNull(),
+    contentJson: text('content_json').notNull(),
+    status: text('status', { enum: ['draft', 'approved', 'rejected'] })
+      .notNull()
+      .default('draft'),
+    createdAt: createdAt()
+  },
+  (table) => [
+    uniqueIndex('native_flashcard_notes_id_owner_unique').on(
+      table.id,
+      table.ownerId
+    ),
+    uniqueIndex('native_flashcard_notes_source_owner_unique').on(
+      table.ownerId,
+      table.sourceId
+    ),
+    foreignKey({
+      columns: [table.deckId, table.ownerId],
+      foreignColumns: [nativeFlashcardDecks.id, nativeFlashcardDecks.ownerId]
+    }).onDelete('cascade'),
+    index('native_flashcard_notes_owner_deck').on(table.ownerId, table.deckId),
+    check(
+      'native_flashcard_notes_kind',
+      sql`${table.kind} IN ('basic', 'cloze')`
+    ),
+    check(
+      'native_flashcard_notes_status',
+      sql`${table.status} IN ('draft', 'approved', 'rejected')`
+    ),
+    check(
+      'native_flashcard_notes_content_json',
+      sql`json_valid(${table.contentJson})`
+    )
+  ]
+);
+
+export const nativeFlashcards = sqliteTable(
+  'native_flashcards',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id').notNull(),
+    noteId: text('note_id').notNull(),
+    ordinal: integer('ordinal').notNull().default(0),
+    stateJson: text('state_json').notNull(),
+    dueAt: integer('due_at').notNull(),
+    revision: integer('revision').notNull().default(0),
+    suspended: integer('suspended', { mode: 'boolean' })
+      .notNull()
+      .default(false),
+    schedulerVersion: text('scheduler_version').notNull(),
+    parametersJson: text('parameters_json').notNull()
+  },
+  (table) => [
+    uniqueIndex('native_flashcards_id_owner_unique').on(
+      table.id,
+      table.ownerId
+    ),
+    uniqueIndex('native_flashcards_note_ordinal_unique').on(
+      table.ownerId,
+      table.noteId,
+      table.ordinal
+    ),
+    foreignKey({
+      columns: [table.noteId, table.ownerId],
+      foreignColumns: [nativeFlashcardNotes.id, nativeFlashcardNotes.ownerId]
+    }).onDelete('cascade'),
+    index('native_flashcards_owner_due').on(
+      table.ownerId,
+      table.suspended,
+      table.dueAt
+    ),
+    check('native_flashcards_ordinal', sql`${table.ordinal} >= 0`),
+    check('native_flashcards_revision', sql`${table.revision} >= 0`),
+    check('native_flashcards_state_json', sql`json_valid(${table.stateJson})`),
+    check(
+      'native_flashcards_parameters_json',
+      sql`json_valid(${table.parametersJson})`
+    )
+  ]
+);
+
+export const nativeFlashcardReviewEvents = sqliteTable(
+  'native_flashcard_review_events',
+  {
+    id: text('id').notNull(),
+    ownerId: text('owner_id').notNull(),
+    cardId: text('card_id').notNull(),
+    expectedRevision: integer('expected_revision').notNull(),
+    rating: text('rating', {
+      enum: ['again', 'hard', 'good', 'easy']
+    }).notNull(),
+    reviewedAt: integer('reviewed_at').notNull(),
+    schedulerVersion: text('scheduler_version').notNull(),
+    parametersJson: text('parameters_json').notNull(),
+    resultJson: text('result_json').notNull()
+  },
+  (table) => [
+    primaryKey({ columns: [table.ownerId, table.id] }),
+    uniqueIndex('native_flashcard_review_events_idempotency').on(
+      table.ownerId,
+      table.id
+    ),
+    foreignKey({
+      columns: [table.cardId, table.ownerId],
+      foreignColumns: [nativeFlashcards.id, nativeFlashcards.ownerId]
+    }).onDelete('cascade'),
+    index('native_flashcard_review_events_card_time').on(
+      table.ownerId,
+      table.cardId,
+      table.reviewedAt
+    ),
+    check(
+      'native_flashcard_review_events_revision',
+      sql`${table.expectedRevision} >= 0`
+    ),
+    check(
+      'native_flashcard_review_events_rating',
+      sql`${table.rating} IN ('again', 'hard', 'good', 'easy')`
+    ),
+    check(
+      'native_flashcard_review_events_parameters_json',
+      sql`json_valid(${table.parametersJson})`
+    ),
+    check(
+      'native_flashcard_review_events_result_json',
+      sql`json_valid(${table.resultJson})`
+    )
+  ]
+);
