@@ -33,58 +33,58 @@ CREATE UNIQUE INDEX `native_flashcard_notes_source_owner_unique` ON `native_flas
 CREATE INDEX `native_flashcard_notes_owner_deck` ON `native_flashcard_notes` (`owner_id`,`deck_id`);--> statement-breakpoint
 -- Remove valid c1 tokens, then reject remaining numeric deletion markers like the service.
 CREATE TRIGGER `native_flashcard_notes_cloze_insert` BEFORE INSERT ON `native_flashcard_notes`
-WHEN NEW.kind = 'cloze' AND json_valid(NEW.content_json)
- AND json_type(NEW.content_json, '$.text') = 'text'
- AND length(json_extract(NEW.content_json, '$.text')) BETWEEN 1 AND 4096
+WHEN `NEW`.`kind` = 'cloze' AND json_valid(`NEW`.`content_json`)
+ AND json_type(`NEW`.`content_json`, '$.text') = 'text'
+ AND length(json_extract(`NEW`.`content_json`, '$.text')) BETWEEN 1 AND 4096
 BEGIN
  SELECT RAISE(ABORT, 'native flashcard restricted cloze syntax') WHERE EXISTS (
-  WITH RECURSIVE stripped(remaining, residual, found) AS (
-   SELECT json_extract(NEW.content_json, '$.text'), '', 0
+  WITH RECURSIVE `stripped`(`remaining`, `residual`, `found`) AS (
+   SELECT json_extract(`NEW`.`content_json`, '$.text'), '', 0
    UNION ALL
    SELECT
-    substr(remaining, CASE WHEN substr(remaining, 1, 6) = '{{c1::' AND instr(remaining, '}}') > 7 AND substr(remaining, 7, instr(remaining, '}}') - 7) NOT GLOB '*[{}]*' THEN instr(remaining, '}}') + 2 ELSE 2 END),
-    residual || CASE WHEN substr(remaining, 1, 6) = '{{c1::' AND instr(remaining, '}}') > 7 AND substr(remaining, 7, instr(remaining, '}}') - 7) NOT GLOB '*[{}]*' THEN '' ELSE substr(remaining, 1, 1) END,
-    found OR (substr(remaining, 1, 6) = '{{c1::' AND instr(remaining, '}}') > 7 AND substr(remaining, 7, instr(remaining, '}}') - 7) NOT GLOB '*[{}]*')
-   FROM stripped WHERE length(remaining) > 0
-  ), suffixes(rest) AS (
-   SELECT residual FROM stripped WHERE remaining = ''
+    substr(`remaining`, CASE WHEN substr(`remaining`, 1, 6) = '{{c1::' AND instr(`remaining`, '}}') > 7 AND substr(`remaining`, 7, instr(`remaining`, '}}') - 7) NOT GLOB '*[{}]*' THEN instr(`remaining`, '}}') + 2 ELSE 2 END),
+    `residual` || CASE WHEN substr(`remaining`, 1, 6) = '{{c1::' AND instr(`remaining`, '}}') > 7 AND substr(`remaining`, 7, instr(`remaining`, '}}') - 7) NOT GLOB '*[{}]*' THEN '' ELSE substr(`remaining`, 1, 1) END,
+    `found` OR (substr(`remaining`, 1, 6) = '{{c1::' AND instr(`remaining`, '}}') > 7 AND substr(`remaining`, 7, instr(`remaining`, '}}') - 7) NOT GLOB '*[{}]*')
+   FROM `stripped` WHERE length(`remaining`) > 0
+  ), `suffixes`(`rest`) AS (
+   SELECT `residual` FROM `stripped` WHERE `remaining` = ''
    UNION ALL
-   SELECT substr(rest, 2) FROM suffixes WHERE length(rest) > 0
+   SELECT substr(`rest`, 2) FROM `suffixes` WHERE length(`rest`) > 0
   )
-  SELECT 1 FROM stripped WHERE remaining = '' AND found = 0
+  SELECT 1 FROM `stripped` WHERE `remaining` = '' AND `found` = 0
   UNION ALL
-  SELECT 1 FROM suffixes WHERE substr(rest, 1, 3) = '{{c'
-   AND substr(rest, 4, 1) GLOB '[0-9]'
-   AND substr(ltrim(substr(rest, 4), '0123456789'), 1, 2) = '::'
+  SELECT 1 FROM `suffixes` WHERE substr(`rest`, 1, 3) = '{{c'
+   AND substr(`rest`, 4, 1) GLOB '[0-9]'
+   AND substr(ltrim(substr(`rest`, 4), '0123456789'), 1, 2) = '::'
  );
 END;
 --> statement-breakpoint
 
 -- Remove valid c1 tokens, then reject remaining numeric deletion markers like the service.
-CREATE TRIGGER `native_flashcard_notes_cloze_update` BEFORE UPDATE OF kind, content_json ON `native_flashcard_notes`
-WHEN NEW.kind = 'cloze' AND json_valid(NEW.content_json)
- AND json_type(NEW.content_json, '$.text') = 'text'
- AND length(json_extract(NEW.content_json, '$.text')) BETWEEN 1 AND 4096
+CREATE TRIGGER `native_flashcard_notes_cloze_update` BEFORE UPDATE OF `kind`, `content_json` ON `native_flashcard_notes`
+WHEN `NEW`.`kind` = 'cloze' AND json_valid(`NEW`.`content_json`)
+ AND json_type(`NEW`.`content_json`, '$.text') = 'text'
+ AND length(json_extract(`NEW`.`content_json`, '$.text')) BETWEEN 1 AND 4096
 BEGIN
  SELECT RAISE(ABORT, 'native flashcard restricted cloze syntax') WHERE EXISTS (
-  WITH RECURSIVE stripped(remaining, residual, found) AS (
-   SELECT json_extract(NEW.content_json, '$.text'), '', 0
+  WITH RECURSIVE `stripped`(`remaining`, `residual`, `found`) AS (
+   SELECT json_extract(`NEW`.`content_json`, '$.text'), '', 0
    UNION ALL
    SELECT
-    substr(remaining, CASE WHEN substr(remaining, 1, 6) = '{{c1::' AND instr(remaining, '}}') > 7 AND substr(remaining, 7, instr(remaining, '}}') - 7) NOT GLOB '*[{}]*' THEN instr(remaining, '}}') + 2 ELSE 2 END),
-    residual || CASE WHEN substr(remaining, 1, 6) = '{{c1::' AND instr(remaining, '}}') > 7 AND substr(remaining, 7, instr(remaining, '}}') - 7) NOT GLOB '*[{}]*' THEN '' ELSE substr(remaining, 1, 1) END,
-    found OR (substr(remaining, 1, 6) = '{{c1::' AND instr(remaining, '}}') > 7 AND substr(remaining, 7, instr(remaining, '}}') - 7) NOT GLOB '*[{}]*')
-   FROM stripped WHERE length(remaining) > 0
-  ), suffixes(rest) AS (
-   SELECT residual FROM stripped WHERE remaining = ''
+    substr(`remaining`, CASE WHEN substr(`remaining`, 1, 6) = '{{c1::' AND instr(`remaining`, '}}') > 7 AND substr(`remaining`, 7, instr(`remaining`, '}}') - 7) NOT GLOB '*[{}]*' THEN instr(`remaining`, '}}') + 2 ELSE 2 END),
+    `residual` || CASE WHEN substr(`remaining`, 1, 6) = '{{c1::' AND instr(`remaining`, '}}') > 7 AND substr(`remaining`, 7, instr(`remaining`, '}}') - 7) NOT GLOB '*[{}]*' THEN '' ELSE substr(`remaining`, 1, 1) END,
+    `found` OR (substr(`remaining`, 1, 6) = '{{c1::' AND instr(`remaining`, '}}') > 7 AND substr(`remaining`, 7, instr(`remaining`, '}}') - 7) NOT GLOB '*[{}]*')
+   FROM `stripped` WHERE length(`remaining`) > 0
+  ), `suffixes`(`rest`) AS (
+   SELECT `residual` FROM `stripped` WHERE `remaining` = ''
    UNION ALL
-   SELECT substr(rest, 2) FROM suffixes WHERE length(rest) > 0
+   SELECT substr(`rest`, 2) FROM `suffixes` WHERE length(`rest`) > 0
   )
-  SELECT 1 FROM stripped WHERE remaining = '' AND found = 0
+  SELECT 1 FROM `stripped` WHERE `remaining` = '' AND `found` = 0
   UNION ALL
-  SELECT 1 FROM suffixes WHERE substr(rest, 1, 3) = '{{c'
-   AND substr(rest, 4, 1) GLOB '[0-9]'
-   AND substr(ltrim(substr(rest, 4), '0123456789'), 1, 2) = '::'
+  SELECT 1 FROM `suffixes` WHERE substr(`rest`, 1, 3) = '{{c'
+   AND substr(`rest`, 4, 1) GLOB '[0-9]'
+   AND substr(ltrim(substr(`rest`, 4), '0123456789'), 1, 2) = '::'
  );
 END;
 --> statement-breakpoint

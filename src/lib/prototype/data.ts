@@ -43,291 +43,301 @@ export interface Track {
   skills: Skill[];
 }
 
+function skill(
+  id: string,
+  topic: string,
+  name: string,
+  prerequisites: string[],
+  mastery: Mastery
+): Skill {
+  return { id, topic, name, prerequisites, mastery };
+}
+
 // French A1 skill names/topics/edges mirror this repository's draft catalog.
 export const frenchA1: Skill[] = [
-  {
-    id: 'fr-a1-001',
-    topic: 'Sentence basics',
-    name: 'Build short affirmative statements with a subject and a finite verb',
-    prerequisites: [],
-    mastery: 'strong'
-  },
-  {
-    id: 'fr-a1-002',
-    topic: 'Pronouns',
-    name: 'Use subject pronouns with common verbs',
-    prerequisites: ['fr-a1-001'],
-    mastery: 'not-started'
-  },
-  {
-    id: 'fr-a1-003',
-    topic: 'Present tense',
-    name: 'Conjugate regular -er verbs in common present-tense statements and questions',
-    prerequisites: ['fr-a1-001'],
-    mastery: 'practising'
-  },
-  {
-    id: 'fr-a1-004',
-    topic: 'Present tense',
-    name: 'Use être and avoir in common present-tense patterns',
-    prerequisites: ['fr-a1-002'],
-    mastery: 'introduced'
-  },
-  {
-    id: 'fr-a1-005',
-    topic: 'Present tense',
-    name: 'Use frequent irregular present forms including aller in routine expressions',
-    prerequisites: ['fr-a1-003', 'fr-a1-004'],
-    mastery: 'not-started'
-  },
-  {
-    id: 'fr-a1-006',
-    topic: 'Negation',
-    name: 'Form simple ne…pas negation around a finite verb',
-    prerequisites: ['fr-a1-003'],
-    mastery: 'not-started'
-  },
-  {
-    id: 'fr-a1-007',
-    topic: 'Questions',
-    name: 'Ask yes/no questions with intonation and est-ce que',
-    prerequisites: ['fr-a1-003', 'fr-a1-004'],
-    mastery: 'not-started'
-  },
-  {
-    id: 'fr-a1-008',
-    topic: 'Questions',
-    name: 'Ask about people and familiar details with common question words',
-    prerequisites: ['fr-a1-007'],
-    mastery: 'not-started'
-  },
-  {
-    id: 'fr-a1-009',
-    topic: 'Nouns and articles',
-    name: 'Choose common singular definite and indefinite articles with noun gender',
-    prerequisites: [],
-    mastery: 'practising'
-  },
-  {
-    id: 'fr-a1-010',
-    topic: 'Nouns and articles',
-    name: 'Form regular plural nouns and choose plural articles in familiar noun phrases',
-    prerequisites: ['fr-a1-009'],
-    mastery: 'introduced'
-  },
-  {
-    id: 'fr-a1-011',
-    topic: 'Adjectives',
-    name: 'Place common adjectives and agree them with familiar nouns',
-    prerequisites: ['fr-a1-009', 'fr-a1-010'],
-    mastery: 'not-started'
-  },
-  {
-    id: 'fr-a1-012',
-    topic: 'Determiners',
-    name: 'Use basic possessive determiners for family and personal belongings',
-    prerequisites: ['fr-a1-009', 'fr-a1-010'],
-    mastery: 'not-started'
-  },
-  {
-    id: 'fr-a1-013',
-    topic: 'Determiners',
-    name: 'Use ce/cette/ces to identify familiar people and things',
-    prerequisites: ['fr-a1-009', 'fr-a1-010'],
-    mastery: 'not-started'
-  },
-  {
-    id: 'fr-a1-014',
-    topic: 'Quantity',
-    name: 'Use common partitive forms for food and uncounted quantities',
-    prerequisites: ['fr-a1-009', 'fr-a1-010'],
-    mastery: 'not-started'
-  },
-  {
-    id: 'fr-a1-015',
-    topic: 'Prepositions',
-    name: 'Use frequent place prepositions in simple location statements',
-    prerequisites: [],
-    mastery: 'strong'
-  },
-  {
-    id: 'fr-a1-016',
-    topic: 'Time',
-    name: 'Use common clock and calendar expressions with simple prepositions',
-    prerequisites: ['fr-a1-015'],
-    mastery: 'introduced'
-  },
-  {
-    id: 'fr-a1-017',
-    topic: 'Verbs',
-    name: 'Use the infinitive after common ability and preference verbs',
-    prerequisites: [],
-    mastery: 'practising'
-  },
-  {
-    id: 'fr-a1-018',
-    topic: 'Imperative',
-    name: 'Understand and produce frequent short instructions and requests',
-    prerequisites: ['fr-a1-003', 'fr-a1-004'],
-    mastery: 'not-started'
-  },
-  {
-    id: 'fr-a1-019',
-    topic: 'Future',
-    name: 'Use aller + infinitive for an immediate plan',
-    prerequisites: ['fr-a1-005'],
-    mastery: 'not-started'
-  },
-  {
-    id: 'fr-a1-020',
-    topic: 'Connectors',
-    name: 'Join short clauses with common additive and contrastive connectors',
-    prerequisites: [],
-    mastery: 'introduced'
-  },
-  {
-    id: 'fr-a1-021',
-    topic: 'Past tense',
-    name: 'Use passé composé with avoir and a few frequent être verbs for short past events',
-    prerequisites: ['fr-a1-003', 'fr-a1-004'],
-    mastery: 'not-started'
-  },
-  {
-    id: 'fr-a1-022',
-    topic: 'Recent past',
-    name: 'Use venir de + infinitive to describe something just completed',
-    prerequisites: ['fr-a1-005', 'fr-a1-017'],
-    mastery: 'not-started'
-  },
-  {
-    id: 'fr-a1-023',
-    topic: 'Reflexive verbs',
-    name: 'Use frequent present-tense reflexive verbs for daily routines',
-    prerequisites: ['fr-a1-002', 'fr-a1-004'],
-    mastery: 'not-started'
-  },
-  {
-    id: 'fr-a1-024',
-    topic: 'Existence',
-    name: 'Use il y a in simple existence and location statements',
-    prerequisites: ['fr-a1-001', 'fr-a1-009'],
-    mastery: 'not-started'
-  },
-  {
-    id: 'fr-a1-025',
-    topic: 'Requests and necessity',
-    name: 'Use il faut and il ne faut pas with an infinitive for simple instructions',
-    prerequisites: ['fr-a1-017', 'fr-a1-018'],
-    mastery: 'not-started'
-  },
-  {
-    id: 'fr-a1-026',
-    topic: 'Polite requests',
-    name: 'Use voudrais and pourriez-vous as memorised polite request forms',
-    prerequisites: ['fr-a1-007', 'fr-a1-008'],
-    mastery: 'not-started'
-  },
-  {
-    id: 'fr-a1-027',
-    topic: 'Identity',
-    name: 'Use masculine and feminine forms for common professions and nationalities',
-    prerequisites: ['fr-a1-009', 'fr-a1-011'],
-    mastery: 'not-started'
-  },
-  {
-    id: 'fr-a1-028',
-    topic: 'Present progressive',
-    name: 'Use être en train de + infinitive for an action happening now',
-    prerequisites: ['fr-a1-004', 'fr-a1-017'],
-    mastery: 'not-started'
-  }
+  skill(
+    'fr-a1-001',
+    'Sentence basics',
+    'Build short affirmative statements with a subject and a finite verb',
+    [],
+    'strong'
+  ),
+  skill(
+    'fr-a1-002',
+    'Pronouns',
+    'Use subject pronouns with common verbs',
+    ['fr-a1-001'],
+    'not-started'
+  ),
+  skill(
+    'fr-a1-003',
+    'Present tense',
+    'Conjugate regular -er verbs in common present-tense statements and questions',
+    ['fr-a1-001'],
+    'practising'
+  ),
+  skill(
+    'fr-a1-004',
+    'Present tense',
+    'Use être and avoir in common present-tense patterns',
+    ['fr-a1-002'],
+    'practising'
+  ),
+  skill(
+    'fr-a1-005',
+    'Present tense',
+    'Use frequent irregular present forms including aller in routine expressions',
+    ['fr-a1-003', 'fr-a1-004'],
+    'not-started'
+  ),
+  skill(
+    'fr-a1-006',
+    'Negation',
+    'Form simple ne…pas negation around a finite verb',
+    ['fr-a1-003'],
+    'not-started'
+  ),
+  skill(
+    'fr-a1-007',
+    'Questions',
+    'Ask yes/no questions with intonation and est-ce que',
+    ['fr-a1-003', 'fr-a1-004'],
+    'not-started'
+  ),
+  skill(
+    'fr-a1-008',
+    'Questions',
+    'Ask about people and familiar details with common question words',
+    ['fr-a1-007'],
+    'not-started'
+  ),
+  skill(
+    'fr-a1-009',
+    'Nouns and articles',
+    'Choose common singular definite and indefinite articles with noun gender',
+    [],
+    'practising'
+  ),
+  skill(
+    'fr-a1-010',
+    'Nouns and articles',
+    'Form regular plural nouns and choose plural articles in familiar noun phrases',
+    ['fr-a1-009'],
+    'introduced'
+  ),
+  skill(
+    'fr-a1-011',
+    'Adjectives',
+    'Place common adjectives and agree them with familiar nouns',
+    ['fr-a1-009', 'fr-a1-010'],
+    'not-started'
+  ),
+  skill(
+    'fr-a1-012',
+    'Determiners',
+    'Use basic possessive determiners for family and personal belongings',
+    ['fr-a1-009', 'fr-a1-010'],
+    'not-started'
+  ),
+  skill(
+    'fr-a1-013',
+    'Determiners',
+    'Use ce/cette/ces to identify familiar people and things',
+    ['fr-a1-009', 'fr-a1-010'],
+    'not-started'
+  ),
+  skill(
+    'fr-a1-014',
+    'Quantity',
+    'Use common partitive forms for food and uncounted quantities',
+    ['fr-a1-009', 'fr-a1-010'],
+    'not-started'
+  ),
+  skill(
+    'fr-a1-015',
+    'Prepositions',
+    'Use frequent place prepositions in simple location statements',
+    [],
+    'strong'
+  ),
+  skill(
+    'fr-a1-016',
+    'Time',
+    'Use common clock and calendar expressions with simple prepositions',
+    ['fr-a1-015'],
+    'introduced'
+  ),
+  skill(
+    'fr-a1-017',
+    'Verbs',
+    'Use the infinitive after common ability and preference verbs',
+    [],
+    'practising'
+  ),
+  skill(
+    'fr-a1-018',
+    'Imperative',
+    'Understand and produce frequent short instructions and requests',
+    ['fr-a1-003', 'fr-a1-004'],
+    'not-started'
+  ),
+  skill(
+    'fr-a1-019',
+    'Future',
+    'Use aller + infinitive for an immediate plan',
+    ['fr-a1-005'],
+    'not-started'
+  ),
+  skill(
+    'fr-a1-020',
+    'Connectors',
+    'Join short clauses with common additive and contrastive connectors',
+    [],
+    'introduced'
+  ),
+  skill(
+    'fr-a1-021',
+    'Past tense',
+    'Use passé composé with avoir and a few frequent être verbs for short past events',
+    ['fr-a1-003', 'fr-a1-004'],
+    'not-started'
+  ),
+  skill(
+    'fr-a1-022',
+    'Recent past',
+    'Use venir de + infinitive to describe something just completed',
+    ['fr-a1-005', 'fr-a1-017'],
+    'not-started'
+  ),
+  skill(
+    'fr-a1-023',
+    'Reflexive verbs',
+    'Use frequent present-tense reflexive verbs for daily routines',
+    ['fr-a1-002', 'fr-a1-004'],
+    'not-started'
+  ),
+  skill(
+    'fr-a1-024',
+    'Existence',
+    'Use il y a in simple existence and location statements',
+    ['fr-a1-001', 'fr-a1-009'],
+    'not-started'
+  ),
+  skill(
+    'fr-a1-025',
+    'Requests and necessity',
+    'Use il faut and il ne faut pas with an infinitive for simple instructions',
+    ['fr-a1-017', 'fr-a1-018'],
+    'not-started'
+  ),
+  skill(
+    'fr-a1-026',
+    'Polite requests',
+    'Use voudrais and pourriez-vous as memorised polite request forms',
+    ['fr-a1-007', 'fr-a1-008'],
+    'not-started'
+  ),
+  skill(
+    'fr-a1-027',
+    'Identity',
+    'Use masculine and feminine forms for common professions and nationalities',
+    ['fr-a1-009', 'fr-a1-011'],
+    'not-started'
+  ),
+  skill(
+    'fr-a1-028',
+    'Present progressive',
+    'Use être en train de + infinitive for an action happening now',
+    ['fr-a1-004', 'fr-a1-017'],
+    'not-started'
+  )
 ];
 
 export const germanA1: Skill[] = [
-  {
-    id: 'de-a1-001',
-    topic: 'Sentence order',
-    name: 'Build short main clauses with the finite verb in second position',
-    prerequisites: [],
-    mastery: 'practising'
-  },
-  {
-    id: 'de-a1-002',
-    topic: 'Sentence order',
-    name: 'Form yes/no questions with the finite verb first',
-    prerequisites: ['de-a1-001'],
-    mastery: 'introduced'
-  },
-  {
-    id: 'de-a1-003',
-    topic: 'Questions',
-    name: 'Ask simple questions with frequent question words',
-    prerequisites: ['de-a1-002'],
-    mastery: 'not-started'
-  },
-  {
-    id: 'de-a1-004',
-    topic: 'Present tense',
-    name: 'Conjugate common regular verbs in the present tense',
-    prerequisites: [],
-    mastery: 'practising'
-  },
-  {
-    id: 'de-a1-005',
-    topic: 'Present tense',
-    name: 'Use frequent irregular present forms including sein and haben',
-    prerequisites: ['de-a1-004'],
-    mastery: 'introduced'
-  },
-  {
-    id: 'de-a1-006',
-    topic: 'Negation',
-    name: 'Recognize the difference between kein in noun phrases and nicht in predicates',
-    prerequisites: ['de-a1-004', 'de-a1-007'],
-    mastery: 'not-started'
-  },
-  {
-    id: 'de-a1-007',
-    topic: 'Nouns',
-    name: 'Recognize grammatical gender and identify nominative article forms',
-    prerequisites: [],
-    mastery: 'introduced'
-  },
-  {
-    id: 'de-a1-008',
-    topic: 'Nouns',
-    name: 'Form and recognize common singular and plural noun forms',
-    prerequisites: ['de-a1-007'],
-    mastery: 'not-started'
-  },
-  {
-    id: 'de-a1-009',
-    topic: 'Cases',
-    name: 'Use nominative and accusative articles for common subjects and direct objects',
-    prerequisites: ['de-a1-007', 'de-a1-011'],
-    mastery: 'not-started'
-  },
-  {
-    id: 'de-a1-010',
-    topic: 'Cases',
-    name: 'Recognize dative forms in frequent fixed expressions and common verbs',
-    prerequisites: ['de-a1-009'],
-    mastery: 'not-started'
-  },
-  {
-    id: 'de-a1-011',
-    topic: 'Determiners',
-    name: 'Choose common definite and indefinite articles with familiar nouns',
-    prerequisites: ['de-a1-007'],
-    mastery: 'not-started'
-  },
-  {
-    id: 'de-a1-012',
-    topic: 'Determiners',
-    name: 'Use possessive determiners in basic personal descriptions',
-    prerequisites: ['de-a1-011'],
-    mastery: 'not-started'
-  }
+  skill(
+    'de-a1-001',
+    'Sentence order',
+    'Build short main clauses with the finite verb in second position',
+    [],
+    'practising'
+  ),
+  skill(
+    'de-a1-002',
+    'Sentence order',
+    'Form yes/no questions with the finite verb first',
+    ['de-a1-001'],
+    'introduced'
+  ),
+  skill(
+    'de-a1-003',
+    'Questions',
+    'Ask simple questions with frequent question words',
+    ['de-a1-002'],
+    'not-started'
+  ),
+  skill(
+    'de-a1-004',
+    'Present tense',
+    'Conjugate common regular verbs in the present tense',
+    [],
+    'practising'
+  ),
+  skill(
+    'de-a1-005',
+    'Present tense',
+    'Use frequent irregular present forms including sein and haben',
+    ['de-a1-004'],
+    'introduced'
+  ),
+  skill(
+    'de-a1-006',
+    'Negation',
+    'Recognize the difference between kein in noun phrases and nicht in predicates',
+    ['de-a1-004', 'de-a1-007'],
+    'not-started'
+  ),
+  skill(
+    'de-a1-007',
+    'Nouns',
+    'Recognize grammatical gender and identify nominative article forms',
+    [],
+    'introduced'
+  ),
+  skill(
+    'de-a1-008',
+    'Nouns',
+    'Form and recognize common singular and plural noun forms',
+    ['de-a1-007'],
+    'not-started'
+  ),
+  skill(
+    'de-a1-009',
+    'Cases',
+    'Use nominative and accusative articles for common subjects and direct objects',
+    ['de-a1-007', 'de-a1-011'],
+    'not-started'
+  ),
+  skill(
+    'de-a1-010',
+    'Cases',
+    'Recognize dative forms in frequent fixed expressions and common verbs',
+    ['de-a1-009'],
+    'not-started'
+  ),
+  skill(
+    'de-a1-011',
+    'Determiners',
+    'Choose common definite and indefinite articles with familiar nouns',
+    ['de-a1-007'],
+    'not-started'
+  ),
+  skill(
+    'de-a1-012',
+    'Determiners',
+    'Use possessive determiners in basic personal descriptions',
+    ['de-a1-011'],
+    'not-started'
+  )
 ];
 
 export const tracks: Track[] = [
@@ -449,9 +459,14 @@ export const practiceItems: PracticeItem[] = [
     format: 'correction',
     formatLabel: 'Correction',
     prompt: 'Fix the error: « Je suis aller au marché. »',
-    acceptable: ['je vais au marché'],
+    acceptable: [
+      'je vais au marché',
+      'je suis allé au marché',
+      'je suis allée au marché'
+    ],
     sampleAnswer: 'Je vais au marché',
-    explanation: 'A near-future plan needs aller + infinitive, not suis aller.'
+    explanation:
+      'Suis aller is ungrammatical — fix it to the present « Je vais » or the passé composé « Je suis allé(e) ».'
   }
 ];
 
@@ -500,6 +515,8 @@ export interface DeckNote {
   preview: string;
   status: NoteStatus;
   scheduling: Scheduling;
+  // Scheduling state the note returns to when resumed from suspended.
+  preSuspension?: Scheduling;
 }
 
 export interface Deck {
@@ -548,7 +565,8 @@ export const decks: Deck[] = [
         kind: 'basic',
         preview: 'un/une gender choice for common nouns',
         status: 'approved',
-        scheduling: 'suspended'
+        scheduling: 'suspended',
+        preSuspension: 'due'
       }
     ]
   },
@@ -608,9 +626,9 @@ export const defaultResults: ResultsBreakdown = {
   ],
   missedItems: [
     {
-      prompt: 'Fix the error: « Je suis aller au marché. »',
-      yourAnswer: 'Je suis allée au marché',
-      expected: 'Je vais au marché'
+      prompt: 'Choose the correct completion: « Elle ___ fatiguée. »',
+      yourAnswer: 'es',
+      expected: 'est'
     }
   ]
 };

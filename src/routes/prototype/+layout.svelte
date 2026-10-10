@@ -9,9 +9,9 @@
     { href: '/prototype/decks', label: 'Decks' },
     { href: '/prototype/settings', label: 'Settings' }
   ] as const;
+  const pathname = $derived(page.url.pathname.replace(/\/+$/, ''));
   const focusMode = $derived(
-    page.url.pathname === '/prototype/practice' ||
-      page.url.pathname === '/prototype/review'
+    pathname === '/prototype/practice' || pathname === '/prototype/review'
   );
 </script>
 
@@ -37,7 +37,7 @@
       {#each tabs as tab (tab.href)}
         <a
           href={resolve(tab.href)}
-          aria-current={page.url.pathname === tab.href ? 'page' : undefined}
+          aria-current={pathname === tab.href ? 'page' : undefined}
           >{tab.label}</a
         >
       {/each}

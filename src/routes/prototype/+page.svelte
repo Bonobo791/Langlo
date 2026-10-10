@@ -24,7 +24,7 @@
     incorrect: '✗',
     uncertain: '?'
   } as const;
-  const activeSkills = frenchA1.filter((s) => s.mastery !== 'not-started');
+  const dashboardSkills = frenchA1;
 </script>
 
 <svelte:head><title>Home | Langlo prototype</title></svelte:head>
@@ -86,7 +86,7 @@
         From exercise evidence — separate from flashcard recall.
       </p>
       <ul class="skill-list">
-        {#each activeSkills as skill (skill.id)}
+        {#each dashboardSkills as skill (skill.id)}
           <li>
             <span class="skill-name">{skill.name}</span>
             <Chip

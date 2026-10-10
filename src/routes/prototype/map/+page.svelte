@@ -100,15 +100,17 @@
     </ul>
   </section>
 
-  {#each groups as [topic, skills] (topic)}
-    <section class="topic panel" aria-labelledby="topic-{topic}">
-      <h2 id="topic-{topic}">{topic}</h2>
+  {#each groups as [topic, skills], groupIndex (topic)}
+    <section class="topic panel" aria-labelledby="topic-{groupIndex}">
+      <h2 id="topic-{groupIndex}">{topic}</h2>
       <ul class="skills">
         {#each skills as skill (skill.id)}
           {@const unmet = unmetPrerequisites(skill, track.skills)}
           <li id="skill-{skill.id}">
             <div class="row">
-              <a class="skill-link" href={resolve('/prototype/lesson')}
+              <a
+                class="skill-link"
+                href={resolve('/prototype/lesson') + `?skill=${skill.id}`}
                 >{skill.name}</a
               >
               <Chip

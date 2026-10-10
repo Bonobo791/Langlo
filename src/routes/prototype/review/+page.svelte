@@ -1,6 +1,7 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
+  import { tick } from 'svelte';
   import StateSwitcher from '../../../lib/prototype/StateSwitcher.svelte';
   import { ratingIntervals, reviewCards } from '../../../lib/prototype/data';
 
@@ -10,6 +11,7 @@
   let revealed = $state(false);
   let rated = $state(0);
   let lastRating = $state('');
+  const ratingButtons: (HTMLButtonElement | null)[] = $state([]);
 
   const card = $derived(reviewCards[index]);
   const finished = $derived(rated >= reviewCards.length);
@@ -25,13 +27,21 @@
     }
   }
 
+  async function revealCard() {
+    revealed = true;
+    await tick();
+    ratingButtons[0]?.focus();
+  }
+
   function onKeydown(event: KeyboardEvent) {
     if (screenState !== 'normal' || finished) return;
     const target = event.target as HTMLElement;
     if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
-    if (!revealed && event.key === ' ') {
+    if (!revealed && (event.key === ' ' || event.key === 'Enter')) {
+      // Buttons/links keep native activation; only reveal from body focus.
+      if (target !== document.body) return;
       event.preventDefault();
-      revealed = true;
+      revealCard();
       return;
     }
     if (revealed) {
@@ -98,17 +108,18 @@
   </section>
 
   {#if !revealed}
-    <button class="button" type="button" onclick={() => (revealed = true)}>
-      Reveal answer <span class="key-hint">(Space)</span>
+    <button class="button" type="button" onclick={revealCard}>
+      Reveal answer <span class="key-hint">(Space / Enter)</span>
     </button>
   {:else}
     <fieldset class="ratings">
       <legend>How well did you recall it?</legend>
       <div class="rating-row">
-        {#each ratingIntervals as interval (interval.rating)}
+        {#each ratingIntervals as interval, i (interval.rating)}
           <button
             class="rating"
             type="button"
+            bind:this={ratingButtons[i]}
             onclick={() => rate(interval.rating)}
             aria-label="{interval.label} — next review {interval.interval} (key {interval.key})"
           >

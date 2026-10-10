@@ -4,6 +4,7 @@
   import Chip from '../../../lib/prototype/Chip.svelte';
   import StateSwitcher from '../../../lib/prototype/StateSwitcher.svelte';
   import { defaultResults, outcomeLabel } from '../../../lib/prototype/data';
+  import { prototypeSession } from '../../../lib/prototype/session.svelte';
 
   const screenState = $derived(page.url.searchParams.get('state') ?? 'normal');
 
@@ -16,6 +17,22 @@
   const uncertain = $derived(readCount('uncertain', defaultResults.uncertain));
 
   let keptDraft = $state(false);
+
+  function keepAsFlashcard() {
+    const mistakes = prototypeSession.decks.find(
+      (d) => d.id === 'deck-mistakes'
+    );
+    if (keptDraft || !mistakes) return;
+    keptDraft = true;
+    mistakes.notes.push({
+      id: `n-session-${mistakes.notes.length + 1}`,
+      kind: 'basic',
+      preview: '« Elle ___ fatiguée » — est, not es',
+      status: 'draft',
+      scheduling: 'new'
+    });
+    mistakes.counts.new += 1;
+  }
 </script>
 
 <svelte:head><title>Session results | Langlo prototype</title></svelte:head>
@@ -99,10 +116,8 @@
           {#if keptDraft}
             <p class="muted">Added to drafts — approve it in Decks.</p>
           {:else}
-            <button
-              class="secondary"
-              type="button"
-              onclick={() => (keptDraft = true)}>Keep as flashcard</button
+            <button class="secondary" type="button" onclick={keepAsFlashcard}
+              >Keep as flashcard</button
             >
           {/if}
         </li>

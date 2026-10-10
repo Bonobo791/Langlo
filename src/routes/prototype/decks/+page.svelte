@@ -3,11 +3,8 @@
   import { page } from '$app/state';
   import Chip from '../../../lib/prototype/Chip.svelte';
   import StateSwitcher from '../../../lib/prototype/StateSwitcher.svelte';
-  import {
-    decks as initialDecks,
-    schedulingLabel,
-    type Deck
-  } from '../../../lib/prototype/data';
+  import { schedulingLabel, type Deck } from '../../../lib/prototype/data';
+  import { prototypeSession } from '../../../lib/prototype/session.svelte';
 
   const screenState = $derived(page.url.searchParams.get('state') ?? 'normal');
 
@@ -23,7 +20,7 @@
     rejected: 'Rejected'
   } as const;
 
-  let decks = $state<Deck[]>(structuredClone(initialDecks));
+  let decks = $derived(prototypeSession.decks);
   let exportOpen = $state<string | null>(null);
   let exported = $state<string | null>(null);
   let notice = $state('');
@@ -41,11 +38,14 @@
   }
   function toggleSuspend(deck: Deck, noteId: string) {
     const note = deck.notes.find((n) => n.id === noteId);
-    if (note) {
-      note.scheduling =
-        note.scheduling === 'suspended' ? 'learning' : 'suspended';
-      notice = `“${note.preview}” ${note.scheduling === 'suspended' ? 'suspended — it will not appear in review' : 'resumed'}.`;
-    }
+    if (!note) return;
+    const suspending = note.scheduling !== 'suspended';
+    const next = suspending ? 'suspended' : (note.preSuspension ?? 'learning');
+    deck.counts[note.scheduling] -= 1;
+    deck.counts[next] += 1;
+    note.preSuspension = suspending ? note.scheduling : undefined;
+    note.scheduling = next;
+    notice = `“${note.preview}” ${suspending ? 'suspended — it will not appear in review' : 'resumed'}.`;
   }
   const pendingDrafts = $derived(
     decks.flatMap((deck) =>
@@ -216,45 +216,52 @@
         </tbody>
       </table>
 
-      <div class="export">
-        {#if exportOpen === deck.id}
-          <div
-            class="export-panel"
-            role="group"
-            aria-label="Export {deck.name} to Anki"
-          >
-            <p>
-              Export is one-way: the package carries note fields, note types,
-              deck name, and tags. It does <strong>not</strong> include Langlo due
-              dates, scheduling state, or review history, and nothing is imported
-              back. Import it into Anki yourself when you want a copy there.
-            </p>
-            {#if exported === deck.id}
-              <p role="status">
-                Package ready: <strong>langlo-{deck.id}.apkg</strong> (synthetic —
-                nothing was written).
+      {#if prototypeSession.showAnkiExport}
+        <div class="export">
+          {#if exportOpen === deck.id}
+            <div
+              class="export-panel"
+              role="group"
+              aria-label="Export {deck.name} to Anki"
+            >
+              <p>
+                Export is one-way: the package carries note fields, note types,
+                deck name, and tags. It does <strong>not</strong> include Langlo due
+                dates, scheduling state, or review history, and nothing is imported
+                back. Import it into Anki yourself when you want a copy there.
               </p>
-            {:else}
-              <button
-                class="secondary"
-                type="button"
-                onclick={() => (exported = deck.id)}>Generate package</button
-              >
-              <button
-                class="linklike"
-                type="button"
-                onclick={() => (exportOpen = null)}>Cancel</button
-              >
-            {/if}
-          </div>
-        {:else}
-          <button
-            class="secondary"
-            type="button"
-            onclick={() => (exportOpen = deck.id)}>Export to Anki…</button
-          >
-        {/if}
-      </div>
+              {#if exported === deck.id}
+                <p role="status">
+                  Package ready: <strong>langlo-{deck.id}.apkg</strong> (synthetic
+                  — nothing was written).
+                </p>
+              {:else}
+                <button
+                  class="secondary"
+                  type="button"
+                  onclick={() => (exported = deck.id)}>Generate package</button
+                >
+                <button
+                  class="linklike"
+                  type="button"
+                  onclick={() => (exportOpen = null)}>Cancel</button
+                >
+              {/if}
+            </div>
+          {:else}
+            <button
+              class="secondary"
+              type="button"
+              onclick={() => (exportOpen = deck.id)}>Export to Anki…</button
+            >
+          {/if}
+        </div>
+      {:else}
+        <p class="muted">
+          Anki export is hidden by your Settings — enable it to export this
+          deck.
+        </p>
+      {/if}
     </section>
   {/each}
 {/if}

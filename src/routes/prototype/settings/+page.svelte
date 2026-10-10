@@ -3,6 +3,7 @@
   import { page } from '$app/state';
   import StateSwitcher from '../../../lib/prototype/StateSwitcher.svelte';
   import { learner } from '../../../lib/prototype/data';
+  import { prototypeSession } from '../../../lib/prototype/session.svelte';
 
   const screenState = $derived(page.url.searchParams.get('state') ?? 'normal');
 
@@ -15,7 +16,6 @@
   let dayBoundary = $state('04:00');
   let reviewCap = $state(40);
   let newCardCap = $state(10);
-  let showExport = $state(true);
   let saved = $state(false);
 
   const timezones = [
@@ -119,7 +119,7 @@
         one-way — there is no Anki connection or sync to configure here.
       </p>
       <label class="check">
-        <input type="checkbox" bind:checked={showExport} />
+        <input type="checkbox" bind:checked={prototypeSession.showAnkiExport} />
         Show the “Export to Anki” action in Decks
       </label>
     </section>

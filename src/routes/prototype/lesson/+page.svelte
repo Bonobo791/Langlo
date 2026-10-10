@@ -3,7 +3,12 @@
   import { page } from '$app/state';
   import StateSwitcher from '../../../lib/prototype/StateSwitcher.svelte';
 
+  import { frenchA1 } from '../../../lib/prototype/data';
+
   const screenState = $derived(page.url.searchParams.get('state') ?? 'normal');
+  const requested = $derived(
+    frenchA1.find((s) => s.id === page.url.searchParams.get('skill'))
+  );
 </script>
 
 <svelte:head><title>Lesson | Langlo prototype</title></svelte:head>
@@ -41,6 +46,12 @@
   </nav>
 
   <h1>Use être and avoir in common present-tense patterns</h1>
+  {#if requested}
+    <p class="requested">
+      Requested skill: {requested.name} ({requested.id}) — representative lesson
+      content is shown for this screen.
+    </p>
+  {/if}
 
   <aside class="recommended" aria-label="Recommended first">
     <strong>Recommended first:</strong>
@@ -112,6 +123,11 @@
     margin-bottom: 0.5rem;
     color: #49617a;
     font-size: 0.9rem;
+  }
+  .requested {
+    color: #49617a;
+    font-size: 0.9rem;
+    margin-top: -0.6rem;
   }
   .recommended {
     border: 1px solid #e4cf9a;

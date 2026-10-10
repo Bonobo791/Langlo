@@ -30,10 +30,13 @@ test('prototype screens are reachable, labelled, and marked noindex', async ({
 
 test('review flow reveals and rates cards by keyboard', async ({ page }) => {
   await page.goto('/prototype/review');
-  const reveal = page.getByRole('button', { name: /reveal answer/i });
-  await reveal.focus();
+  // Space/Enter on the page body is the documented reveal shortcut; wait for
+  // hydration to attach the key handler before pressing.
+  await page.waitForLoadState('networkidle');
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('button', { name: /^again/i })).toBeVisible();
+  const again = page.getByRole('button', { name: /^again/iu });
+  await expect(again).toBeVisible();
+  await expect(again).toBeFocused();
   await page.keyboard.press('3');
   await expect(page.getByRole('status')).toContainText('Card 2 of 3');
   await page.keyboard.press(' ');
@@ -41,7 +44,7 @@ test('review flow reveals and rates cards by keyboard', async ({ page }) => {
   await page.keyboard.press(' ');
   await page.keyboard.press('4');
   await expect(
-    page.getByRole('heading', { name: /all caught up/i })
+    page.getByRole('heading', { name: /all caught up/iu })
   ).toBeVisible();
 });
 
@@ -59,10 +62,32 @@ test('practice answers produce immediate feedback and results counts', async ({
 
 test('deck draft approval updates the pending queue', async ({ page }) => {
   await page.goto('/prototype/decks');
-  const pending = page.getByRole('heading', { name: /pending approval/i });
+  const pending = page.getByRole('heading', { name: /pending approval/iu });
   await expect(pending).toBeVisible();
   await page.getByRole('button', { name: 'Approve' }).first().click();
   await expect(page.getByRole('status')).toContainText('approved');
+});
+
+test('kept mistake becomes an approvable draft in decks', async ({ page }) => {
+  await page.goto('/prototype/results');
+  await page.getByRole('button', { name: 'Keep as flashcard' }).click();
+  await page.getByRole('link', { name: 'See card drafts' }).click();
+  await expect(
+    page.getByText('« Elle ___ fatiguée » — est, not es', { exact: true })
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Approve' }).last().click();
+  await expect(page.getByRole('status')).toContainText('approved');
+});
+
+test('anki export preference hides the deck export action', async ({
+  page
+}) => {
+  await page.goto('/prototype/settings');
+  await page.getByRole('checkbox', { name: /export to anki/iu }).uncheck();
+  await page.getByRole('link', { name: 'Decks', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: /export to anki/iu })
+  ).toHaveCount(0);
 });
 
 test('prototype error and forbidden states render safe messages', async ({
@@ -75,7 +100,7 @@ test('prototype error and forbidden states render safe messages', async ({
   await expect(page.getByRole('alert')).toContainText('Not enrolled');
   await page.goto('/prototype/review?state=empty');
   await expect(
-    page.getByRole('heading', { name: /all caught up/i })
+    page.getByRole('heading', { name: /all caught up/iu })
   ).toBeVisible();
 });
 
@@ -84,8 +109,8 @@ test('prototype screens have no horizontal overflow', async ({ page }) => {
     await page.goto(path);
     const overflow = await page.evaluate(
       () =>
-        document.documentElement.scrollWidth -
-        document.documentElement.clientWidth
+        globalThis.document.documentElement.scrollWidth -
+        globalThis.document.documentElement.clientWidth
     );
     expect(overflow, `${path} has horizontal overflow`).toBeLessThanOrEqual(1);
   }
