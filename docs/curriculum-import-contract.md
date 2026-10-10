@@ -1,12 +1,16 @@
 # Curriculum import contract
 
-This contract versions the grammar catalog and prerequisite graph as one bundle. It defines data shape and validation behavior for a future importer; it does not implement or provision an importer.
+This contract versions the grammar catalog, lifecycle ledger, and prerequisite graph as one bundle. It defines validation behavior for a future importer; it does not implement or provision an importer.
 
-## Bundle manifest
+## Bundle manifest and approval
 
-`content/curriculum-manifest.json` is the entry point. `manifest_version` versions this manifest contract; `curriculum_version` versions the content bundle independently. The two paths are repository-relative and identify the CSV catalog and prerequisite JSON. `dependency_semantics` is fixed to `recommended_teaching_order`: links can guide lesson recommendations and never block learner access based on mastery.
+`content/curriculum-manifest.json` is the bundle entry point. `manifest_version` versions this contract. `curriculum_version` is semantic versioning and remains a pre-release while `publication_status` is `draft`. Evidence status on a skill describes its source/placement support and is separate from publication approval. A future importer must reject any bundle whose status is not exactly `approved`; no row status can override a draft bundle.
 
-`curriculum_version` uses semantic versioning. Increase the major number when IDs or field meanings become incompatible, the minor number when adding or retiring skills without changing field meanings, and the patch number for corrections that do not change the learning objective. Skill IDs are never reused. When a bundled objective is split, retain the existing ID for its continuing objective and assign a new ID to the separated objective.
+The manifest names and SHA-256 hashes the coverage CSV, prerequisite JSON, and append-only skill ID registry. Validation must reject missing files, unsafe repository-relative paths, malformed digests, or digest mismatches. Any edit to a hashed file requires updating its digest and the curriculum version according to the version rules below. `dependency_semantics` must equal `recommended_teaching_order`; other values are invalid and must be rejected, not interpreted as mastery gates.
+
+`included_tracks` declares the five audited tracks. `selected_subset_tracks` explicitly identifies French A1 as a selected subset; French A2 is out of scope. A selected-subset declaration prevents the bundle from implying complete coverage of a larger reference inventory.
+
+For approved versions, increase the major number for incompatible schema or meaning changes, the minor number for adding or retiring skills, and the patch number for corrections that do not change learning objectives. Until owner approval and specialist review are complete, retain a `0.x.y` pre-release version and `publication_status: draft`.
 
 ## Coverage catalog
 
@@ -21,17 +25,23 @@ This contract versions the grammar catalog and prerequisite graph as one bundle.
 | `skill`               | Original Langlo learning objective.                                                |
 | `source_ids`          | One or more semicolon-separated reference IDs recorded in `docs/evidence/T004.md`. |
 | `placement_rationale` | Reason for scope and level placement, including local instructional judgment.      |
-| `evidence_status`     | `source-aligned`, `local-alignment`, or `provisional`.                             |
+| `evidence_status`     | Exactly `source-aligned`, `local-alignment`, or `provisional`.                     |
 | `provenance`          | Ownership/provenance statement for the objective.                                  |
+| `lifecycle_status`    | `active` or `retired`; retired rows remain as ID tombstones.                       |
+| `replaced_by`         | Optional semicolon-separated active IDs; required values must resolve.             |
 
-Rows must have non-empty values, unique IDs, supported language/level values, and registered source IDs. A catalog version can define a selected subset of a larger language inventory; coverage claims must name the subset and retain known gaps visibly.
+Every row must match the header width. Every field except `replaced_by` must be non-empty after trimming. The allowed track pairs are French A1, German A1/A2, and English A1/A2. Source IDs must be registered in the evidence file. Evidence status is validated exactly, including whitespace. Active rows have no replacement mapping. Retired rows remain in the catalog; replacements, when present, must point to active IDs.
+
+An ID's learning meaning must not be narrowed, broadened, or reassigned. If an objective is split or retired, retain its row as retired and create new active IDs for the changed objectives. `en-a1-002` therefore remains recorded with its original combined `be`/`have got` meaning and is retired in favor of `en-a1-019` and `en-a1-024`. Existing learner evidence remains attached to the retired ID; replacement IDs do not inherit mastery automatically.
+
+`content/curriculum-id-registry.json` records every ID used. The current validator checks uniqueness and that catalog IDs are registered. It accepts an earlier registry path as an optional argument (`npm run validate:curriculum -- <previous-registry-path>`) and rejects IDs removed from that registry. Approval of later versions must compare the new registry with the previous approved registry. This first bundle has no previous approved registry, so continuity with prior unapproved drafts is checked and recorded separately.
 
 ## Prerequisite graph
 
-`content/prerequisites.json` has `schema_version: 1` and one `nodes` entry per catalog skill. Each node contains a unique `skill_id` and an array of prerequisite skill IDs. IDs must match the catalog exactly. Import validation must reject missing or duplicate nodes, duplicate prerequisites, dangling or self edges, cross-language edges, edges from a higher level to a lower level, and cycles.
+`content/prerequisites.json` has `schema_version: 1` and one node for every catalog ID, including retired tombstones. Each node contains a `skill_id` and an array of prerequisite IDs. IDs must match the catalog exactly. The validator rejects missing or duplicate nodes, duplicate prerequisites, dangling or self edges, dependencies on retired skills, cross-language edges, edges from a higher level to a lower level, and cycles. Retired nodes have no prerequisites.
 
-These edges express recommended teaching order only. A future importer must still reject structurally invalid bundle data, but must not use these edges as learner mastery gates. Any later mastery gates need a separate contract and explicit thresholds.
+These edges express recommended teaching order only. A future importer must reject structurally invalid bundle data and any dependency semantics other than `recommended_teaching_order`, but must not use edges as learner mastery gates. Any later mastery gates need a separate contract and explicit thresholds.
 
 ## Acceptance boundary
 
-Validation checks structural integrity, source registration, version compatibility, and graph consistency. It does not validate CEFR certification, exam equivalence, mastery thresholds, or the truth of a placement solely from a source citation. Runtime import, database changes, and publication are downstream work.
+Validation covers manifest shape, version syntax, approval status, file digests, CSV schema, source registration, skill lifecycle, ID registry, and graph consistency. It does not validate CEFR certification, exam equivalence, mastery thresholds, or placement truth from citations alone. Runtime import, historical registry comparison, learner-evidence migration, and publication remain separate approval gates.

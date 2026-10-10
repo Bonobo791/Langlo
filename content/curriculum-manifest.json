@@ -1,7 +1,20 @@
 {
   "manifest_version": 1,
-  "curriculum_version": "1.0.0",
+  "curriculum_version": "0.1.0-draft.1",
+  "publication_status": "draft",
   "coverage_file": "docs/curriculum-coverage.csv",
+  "coverage_sha256": "d312bc79709d27c46ced5f629cfc05173ab4c3809a757b152f5c104134036a7b",
   "prerequisites_file": "content/prerequisites.json",
-  "dependency_semantics": "recommended_teaching_order"
+  "prerequisites_sha256": "d9a6465372d4240c51f14e58780b97e388866b3e0d91ec4e82afb00f0d56e305",
+  "id_registry_file": "content/curriculum-id-registry.json",
+  "id_registry_sha256": "b36ba07f2dc377b9af4a15c84a092409dd54a1f09dca4ccf436df58133ce3972",
+  "dependency_semantics": "recommended_teaching_order",
+  "included_tracks": [
+    "French A1",
+    "German A1",
+    "German A2",
+    "English A1",
+    "English A2"
+  ],
+  "selected_subset_tracks": ["French A1"]
 }

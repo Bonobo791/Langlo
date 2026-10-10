@@ -323,15 +323,15 @@
     },
     {
       "skill_id": "en-a1-002",
-      "prerequisites": ["en-a1-001"]
+      "prerequisites": []
     },
     {
       "skill_id": "en-a1-003",
-      "prerequisites": ["en-a1-002"]
+      "prerequisites": ["en-a1-024"]
     },
     {
       "skill_id": "en-a1-004",
-      "prerequisites": ["en-a1-002"]
+      "prerequisites": ["en-a1-024"]
     },
     {
       "skill_id": "en-a1-005",
@@ -339,7 +339,7 @@
     },
     {
       "skill_id": "en-a1-006",
-      "prerequisites": ["en-a1-002"]
+      "prerequisites": ["en-a1-024"]
     },
     {
       "skill_id": "en-a1-007",
@@ -347,7 +347,7 @@
     },
     {
       "skill_id": "en-a1-008",
-      "prerequisites": ["en-a1-002"]
+      "prerequisites": ["en-a1-024"]
     },
     {
       "skill_id": "en-a1-009",
@@ -391,7 +391,7 @@
     },
     {
       "skill_id": "en-a1-019",
-      "prerequisites": ["en-a1-002", "en-a1-010"]
+      "prerequisites": ["en-a1-024", "en-a1-010"]
     },
     {
       "skill_id": "en-a1-020",
@@ -423,7 +423,7 @@
     },
     {
       "skill_id": "en-a2-005",
-      "prerequisites": ["en-a1-002"]
+      "prerequisites": ["en-a1-024"]
     },
     {
       "skill_id": "en-a2-006",
@@ -467,7 +467,7 @@
     },
     {
       "skill_id": "en-a2-016",
-      "prerequisites": ["en-a1-002", "en-a2-014"]
+      "prerequisites": ["en-a1-024", "en-a2-014"]
     },
     {
       "skill_id": "en-a2-017",
@@ -496,6 +496,10 @@
     {
       "skill_id": "en-a2-023",
       "prerequisites": ["en-a1-003", "en-a1-022"]
+    },
+    {
+      "skill_id": "en-a1-024",
+      "prerequisites": ["en-a1-001"]
     }
   ]
 }
