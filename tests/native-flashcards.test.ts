@@ -100,6 +100,68 @@ describe('native flashcard persistence feasibility', () => {
     }
   });
 
+  it('counts supplementary-plane card text as Unicode code points at the storage limit', async () => {
+    const target = await fixture();
+    const learner = testSession('learner-a');
+    const db = await openFixtureDatabase(target);
+    const supplementaryCharacter = '𐐷';
+    try {
+      await createDeck(db.client, learner, {
+        id: 'deck-10000000-0000-4000-8000-000000000010',
+        name: 'French'
+      });
+      await expect(
+        createNote(db.client, learner, {
+          id: 'note-10000000-0000-4000-8000-000000000010',
+          sourceId: 'source-10000000-0000-4000-8000-000000000010',
+          deckId: 'deck-10000000-0000-4000-8000-000000000010',
+          kind: 'basic',
+          content: {
+            front: supplementaryCharacter.repeat(4096),
+            back: 'valid'
+          }
+        })
+      ).resolves.toMatchObject({ status: 'draft' });
+      await expect(
+        createNote(db.client, learner, {
+          id: 'note-10000000-0000-4000-8000-000000000011',
+          sourceId: 'source-10000000-0000-4000-8000-000000000011',
+          deckId: 'deck-10000000-0000-4000-8000-000000000010',
+          kind: 'basic',
+          content: {
+            front: supplementaryCharacter.repeat(4097),
+            back: 'valid'
+          }
+        })
+      ).rejects.toMatchObject({ code: 'INVALID_CONTENT' });
+
+      await expect(
+        createNote(db.client, learner, {
+          id: 'note-10000000-0000-4000-8000-000000000012',
+          sourceId: 'source-10000000-0000-4000-8000-000000000012',
+          deckId: 'deck-10000000-0000-4000-8000-000000000010',
+          kind: 'cloze',
+          content: {
+            text: `{{c1::${supplementaryCharacter.repeat(4088)}}}`
+          }
+        })
+      ).resolves.toMatchObject({ status: 'draft' });
+      await expect(
+        createNote(db.client, learner, {
+          id: 'note-10000000-0000-4000-8000-000000000013',
+          sourceId: 'source-10000000-0000-4000-8000-000000000013',
+          deckId: 'deck-10000000-0000-4000-8000-000000000010',
+          kind: 'cloze',
+          content: {
+            text: `{{c1::${supplementaryCharacter.repeat(4089)}}}`
+          }
+        })
+      ).rejects.toMatchObject({ code: 'INVALID_CONTENT' });
+    } finally {
+      db.close();
+    }
+  });
+
   it('requires approval and persists a real FSRS review exactly once, rejecting a stale revision', async () => {
     const target = await fixture();
     const learner = testSession('learner-a');

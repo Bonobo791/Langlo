@@ -37,6 +37,15 @@ const ratings: Record<RatingName, Grade> = {
   easy: Rating.Easy
 };
 
+function exceedsTextLimit(value: string): boolean {
+  const codePoints = value[Symbol.iterator]();
+  let count = 0;
+  while (!codePoints.next().done) {
+    if (++count > maxCardTextLength) return true;
+  }
+  return false;
+}
+
 async function beginWrite(client: Client) {
   for (let attempt = 0; ; attempt += 1) {
     try {
@@ -44,6 +53,7 @@ async function beginWrite(client: Client) {
     } catch (error) {
       if ((error as { code?: string }).code !== 'SQLITE_BUSY' || attempt === 7)
         throw error;
+      // Back off only after the failed write attempt finishes, then retry serially.
       await new Promise((resolve) => setTimeout(resolve, 10 * (attempt + 1)));
     }
   }
@@ -69,8 +79,8 @@ function validateContent(kind: unknown, content: unknown): void {
       typeof content.back !== 'string' ||
       !content.front.trim() ||
       !content.back.trim() ||
-      content.front.length > maxCardTextLength ||
-      content.back.length > maxCardTextLength
+      exceedsTextLimit(content.front) ||
+      exceedsTextLimit(content.back)
     )
       throw new FlashcardError('INVALID_CONTENT');
   } else if (kind === 'cloze') {
@@ -80,7 +90,7 @@ function validateContent(kind: unknown, content: unknown): void {
       !content.text.trim()
     )
       throw new FlashcardError('INVALID_CONTENT');
-    if (content.text.length > maxCardTextLength)
+    if (exceedsTextLimit(content.text))
       throw new FlashcardError('INVALID_CONTENT');
     const matches = content.text.match(/\{\{c1::[^{}]+\}\}/g) ?? [];
     if (
@@ -135,11 +145,11 @@ function readCardScheduler(
     typeof enable_short_term !== 'boolean' ||
     !Array.isArray(learning_steps) ||
     !learning_steps.every(
-      (step) => typeof step === 'string' && /^\d+(?:m|h|d)$/.test(step)
+      (step) => typeof step === 'string' && /^\d+[mhd]$/.test(step)
     ) ||
     !Array.isArray(relearning_steps) ||
     !relearning_steps.every(
-      (step) => typeof step === 'string' && /^\d+(?:m|h|d)$/.test(step)
+      (step) => typeof step === 'string' && /^\d+[mhd]$/.test(step)
     )
   ) {
     throw new FlashcardError('INVALID_SCHEDULER_STATE');
