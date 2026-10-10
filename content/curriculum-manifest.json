@@ -1,0 +1,7 @@
+{
+  "manifest_version": 1,
+  "curriculum_version": "1.0.0",
+  "coverage_file": "docs/curriculum-coverage.csv",
+  "prerequisites_file": "content/prerequisites.json",
+  "dependency_semantics": "recommended_teaching_order"
+}

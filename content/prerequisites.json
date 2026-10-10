@@ -47,15 +47,15 @@
     },
     {
       "skill_id": "fr-a1-012",
-      "prerequisites": []
+      "prerequisites": ["fr-a1-009", "fr-a1-010"]
     },
     {
       "skill_id": "fr-a1-013",
-      "prerequisites": []
+      "prerequisites": ["fr-a1-009", "fr-a1-010"]
     },
     {
       "skill_id": "fr-a1-014",
-      "prerequisites": []
+      "prerequisites": ["fr-a1-009", "fr-a1-010"]
     },
     {
       "skill_id": "fr-a1-015",
@@ -71,15 +71,47 @@
     },
     {
       "skill_id": "fr-a1-018",
-      "prerequisites": []
+      "prerequisites": ["fr-a1-003", "fr-a1-004"]
     },
     {
       "skill_id": "fr-a1-019",
-      "prerequisites": []
+      "prerequisites": ["fr-a1-005"]
     },
     {
       "skill_id": "fr-a1-020",
       "prerequisites": []
+    },
+    {
+      "skill_id": "fr-a1-021",
+      "prerequisites": ["fr-a1-003", "fr-a1-004"]
+    },
+    {
+      "skill_id": "fr-a1-022",
+      "prerequisites": ["fr-a1-005", "fr-a1-017"]
+    },
+    {
+      "skill_id": "fr-a1-023",
+      "prerequisites": ["fr-a1-002", "fr-a1-004"]
+    },
+    {
+      "skill_id": "fr-a1-024",
+      "prerequisites": ["fr-a1-001", "fr-a1-009"]
+    },
+    {
+      "skill_id": "fr-a1-025",
+      "prerequisites": ["fr-a1-017", "fr-a1-018"]
+    },
+    {
+      "skill_id": "fr-a1-026",
+      "prerequisites": ["fr-a1-007", "fr-a1-008"]
+    },
+    {
+      "skill_id": "fr-a1-027",
+      "prerequisites": ["fr-a1-009", "fr-a1-011"]
+    },
+    {
+      "skill_id": "fr-a1-028",
+      "prerequisites": ["fr-a1-004", "fr-a1-017"]
     },
     {
       "skill_id": "de-a1-001",
@@ -123,7 +155,7 @@
     },
     {
       "skill_id": "de-a1-011",
-      "prerequisites": []
+      "prerequisites": ["de-a1-007"]
     },
     {
       "skill_id": "de-a1-012",
@@ -131,7 +163,7 @@
     },
     {
       "skill_id": "de-a1-013",
-      "prerequisites": []
+      "prerequisites": ["de-a1-007", "de-a1-011"]
     },
     {
       "skill_id": "de-a1-014",
@@ -147,7 +179,7 @@
     },
     {
       "skill_id": "de-a1-017",
-      "prerequisites": []
+      "prerequisites": ["de-a1-001", "de-a1-004"]
     },
     {
       "skill_id": "de-a1-018",
@@ -159,7 +191,7 @@
     },
     {
       "skill_id": "de-a1-020",
-      "prerequisites": []
+      "prerequisites": ["de-a1-001", "de-a1-004"]
     },
     {
       "skill_id": "de-a1-021",
@@ -178,8 +210,20 @@
       "prerequisites": []
     },
     {
+      "skill_id": "de-a1-025",
+      "prerequisites": ["de-a1-006", "de-a1-009"]
+    },
+    {
+      "skill_id": "de-a1-026",
+      "prerequisites": ["de-a1-001", "de-a1-023"]
+    },
+    {
+      "skill_id": "de-a1-027",
+      "prerequisites": ["de-a1-001", "de-a1-006"]
+    },
+    {
       "skill_id": "de-a2-001",
-      "prerequisites": ["de-a1-004", "de-a1-005"]
+      "prerequisites": ["de-a1-004", "de-a1-005", "de-a1-018"]
     },
     {
       "skill_id": "de-a2-002",
@@ -346,6 +390,22 @@
       "prerequisites": []
     },
     {
+      "skill_id": "en-a1-019",
+      "prerequisites": ["en-a1-002", "en-a1-010"]
+    },
+    {
+      "skill_id": "en-a1-020",
+      "prerequisites": ["en-a1-001"]
+    },
+    {
+      "skill_id": "en-a1-021",
+      "prerequisites": ["en-a1-009", "en-a1-010"]
+    },
+    {
+      "skill_id": "en-a1-022",
+      "prerequisites": ["en-a1-001", "en-a1-003"]
+    },
+    {
       "skill_id": "en-a2-001",
       "prerequisites": ["en-a1-003", "en-a1-006", "en-a1-008"]
     },
@@ -371,7 +431,7 @@
     },
     {
       "skill_id": "en-a2-007",
-      "prerequisites": ["en-a1-002", "en-a1-006"]
+      "prerequisites": ["en-a1-006", "en-a1-020"]
     },
     {
       "skill_id": "en-a2-008",
@@ -383,7 +443,7 @@
     },
     {
       "skill_id": "en-a2-010",
-      "prerequisites": ["en-a1-003", "en-a1-016"]
+      "prerequisites": ["en-a1-003", "en-a1-022", "en-a1-016"]
     },
     {
       "skill_id": "en-a2-011",
@@ -432,6 +492,10 @@
     {
       "skill_id": "en-a2-022",
       "prerequisites": ["en-a1-017"]
+    },
+    {
+      "skill_id": "en-a2-023",
+      "prerequisites": ["en-a1-003", "en-a1-022"]
     }
   ]
 }
