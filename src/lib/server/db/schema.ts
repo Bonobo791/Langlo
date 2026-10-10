@@ -538,7 +538,7 @@ export const nativeFlashcardDecks = sqliteTable(
     index('native_flashcard_decks_owner').on(table.ownerId),
     check(
       'native_flashcard_decks_name_nonempty',
-      sql`length(trim(${table.name})) BETWEEN 1 AND 160`
+      sql`length(trim(${table.name}, ${flashcardTrimWhitespace})) BETWEEN 1 AND 160 AND length(${table.name}) <= 160 AND instr(${table.name}, char(0)) = 0`
     )
   ]
 );
@@ -587,11 +587,11 @@ export const nativeFlashcardNotes = sqliteTable(
     ),
     check(
       'native_flashcard_notes_source_id',
-      sql`length(${table.sourceId}) = 74 AND ${table.sourceId} GLOB 'langlo:v1:*' AND substr(${table.sourceId}, 11) NOT GLOB '*[^0-9a-f]*'`
+      sql`length(${table.sourceId}) = 74 AND instr(${table.sourceId}, char(0)) = 0 AND ${table.sourceId} GLOB 'langlo:v1:*' AND substr(${table.sourceId}, 11) NOT GLOB '*[^0-9a-f]*'`
     ),
     check(
       'native_flashcard_notes_content_shape',
-      sql`(${table.kind} = 'basic' AND json_type(${table.contentJson}) = 'object' AND json_type(${table.contentJson}, '$.front') = 'text' AND json_type(${table.contentJson}, '$.back') = 'text' AND length(trim(json_extract(${table.contentJson}, '$.front'), ${flashcardTrimWhitespace})) BETWEEN 1 AND 4096 AND length(json_extract(${table.contentJson}, '$.front')) <= 4096 AND length(trim(json_extract(${table.contentJson}, '$.back'), ${flashcardTrimWhitespace})) BETWEEN 1 AND 4096 AND length(json_extract(${table.contentJson}, '$.back')) <= 4096 AND json_remove(${table.contentJson}, '$.front', '$.back') = '{}') OR (${table.kind} = 'cloze' AND json_type(${table.contentJson}) = 'object' AND json_type(${table.contentJson}, '$.text') = 'text' AND length(trim(json_extract(${table.contentJson}, '$.text'), ${flashcardTrimWhitespace})) BETWEEN 1 AND 4096 AND length(json_extract(${table.contentJson}, '$.text')) <= 4096 AND json_remove(${table.contentJson}, '$.text') = '{}')`
+      sql`(${table.kind} = 'basic' AND json_type(${table.contentJson}) = 'object' AND json_type(${table.contentJson}, '$.front') = 'text' AND json_type(${table.contentJson}, '$.back') = 'text' AND instr(json_extract(${table.contentJson}, '$.front'), char(0)) = 0 AND length(trim(json_extract(${table.contentJson}, '$.front'), ${flashcardTrimWhitespace})) BETWEEN 1 AND 4096 AND length(json_extract(${table.contentJson}, '$.front')) <= 4096 AND instr(json_extract(${table.contentJson}, '$.back'), char(0)) = 0 AND length(trim(json_extract(${table.contentJson}, '$.back'), ${flashcardTrimWhitespace})) BETWEEN 1 AND 4096 AND length(json_extract(${table.contentJson}, '$.back')) <= 4096 AND json_remove(${table.contentJson}, '$.front', '$.back') = '{}') OR (${table.kind} = 'cloze' AND json_type(${table.contentJson}) = 'object' AND json_type(${table.contentJson}, '$.text') = 'text' AND instr(json_extract(${table.contentJson}, '$.text'), char(0)) = 0 AND length(trim(json_extract(${table.contentJson}, '$.text'), ${flashcardTrimWhitespace})) BETWEEN 1 AND 4096 AND length(json_extract(${table.contentJson}, '$.text')) <= 4096 AND json_remove(${table.contentJson}, '$.text') = '{}')`
     )
   ]
 );

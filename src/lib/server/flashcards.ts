@@ -9,6 +9,7 @@ import {
   type FSRSParameters
 } from 'ts-fsrs';
 import type { Client } from '@libsql/client';
+import { setTimeout as delay } from 'node:timers/promises';
 
 export interface LearnerSession {
   userId: string;
@@ -30,7 +31,7 @@ type RatingName = 'again' | 'hard' | 'good' | 'easy';
 const schedulerVersion = 'ts-fsrs@5.4.2';
 const parameters = generatorParameters();
 const maxCardTextLength = 4096;
-const sourceIdPattern = /^langlo:v1:[0-9a-f]{64}$/;
+const sourceIdPattern = /^langlo:v1:[0-9a-f]{64}$/u;
 const ratings: Record<RatingName, Grade> = {
   again: Rating.Again,
   hard: Rating.Hard,
@@ -55,7 +56,7 @@ async function beginWrite(client: Client) {
       if ((error as { code?: string }).code !== 'SQLITE_BUSY' || attempt === 7)
         throw error;
       // Back off only after the failed write attempt finishes, then retry serially.
-      await new Promise((resolve) => setTimeout(resolve, 10 * (attempt + 1)));
+      await delay(10 * (attempt + 1));
     }
   }
 }
@@ -80,6 +81,8 @@ function validateContent(kind: unknown, content: unknown): void {
       typeof content.back !== 'string' ||
       !content.front.trim() ||
       !content.back.trim() ||
+      content.front.includes('\0') ||
+      content.back.includes('\0') ||
       exceedsCodePointLimit(content.front, maxCardTextLength) ||
       exceedsCodePointLimit(content.back, maxCardTextLength)
     )
@@ -88,21 +91,56 @@ function validateContent(kind: unknown, content: unknown): void {
     if (
       Object.keys(content).length !== 1 ||
       typeof content.text !== 'string' ||
-      !content.text.trim()
+      !content.text.trim() ||
+      content.text.includes('\0')
     )
       throw new FlashcardError('INVALID_CONTENT');
     if (exceedsCodePointLimit(content.text, maxCardTextLength))
       throw new FlashcardError('INVALID_CONTENT');
-    const matches = content.text.match(/\{\{c1::[^{}]+\}\}/g) ?? [];
+    const matches = content.text.match(/\{\{c1::[^{}]+\}\}/gu) ?? [];
     if (
       !matches.length ||
-      /\{\{c\d+::/.test(content.text.replace(/\{\{c1::[^{}]+\}\}/g, ''))
+      /\{\{c\d+::/u.test(content.text.replace(/\{\{c1::[^{}]+\}\}/gu, ''))
     ) {
       throw new FlashcardError('INVALID_CLOZE');
     }
   } else {
     throw new FlashcardError('INVALID_CONTENT');
   }
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function hasValidWeights(value: unknown): value is number[] {
+  return (
+    Array.isArray(value) &&
+    [17, 19, 21].includes(value.length) &&
+    value.every((weight) => isFiniteNumber(weight))
+  );
+}
+
+function hasValidSteps(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.every((step) => typeof step === 'string' && /^\d+[mhd]$/u.test(step))
+  );
+}
+
+function hasValidSchedulerParameters(value: Record<string, unknown>): boolean {
+  return (
+    isFiniteNumber(value.request_retention) &&
+    value.request_retention > 0 &&
+    value.request_retention <= 1 &&
+    isFiniteNumber(value.maximum_interval) &&
+    value.maximum_interval > 0 &&
+    hasValidWeights(value.w) &&
+    typeof value.enable_fuzz === 'boolean' &&
+    typeof value.enable_short_term === 'boolean' &&
+    hasValidSteps(value.learning_steps) &&
+    hasValidSteps(value.relearning_steps)
+  );
 }
 
 function readCardScheduler(
@@ -120,41 +158,8 @@ function readCardScheduler(
   }
   if (!isRecord(parsed)) throw new FlashcardError('INVALID_SCHEDULER_STATE');
 
-  const {
-    request_retention,
-    maximum_interval,
-    w,
-    enable_fuzz,
-    enable_short_term,
-    learning_steps,
-    relearning_steps
-  } = parsed;
-  if (
-    typeof request_retention !== 'number' ||
-    !Number.isFinite(request_retention) ||
-    request_retention <= 0 ||
-    request_retention > 1 ||
-    typeof maximum_interval !== 'number' ||
-    !Number.isFinite(maximum_interval) ||
-    maximum_interval <= 0 ||
-    !Array.isArray(w) ||
-    ![17, 19, 21].includes(w.length) ||
-    w.some(
-      (weight) => typeof weight !== 'number' || !Number.isFinite(weight)
-    ) ||
-    typeof enable_fuzz !== 'boolean' ||
-    typeof enable_short_term !== 'boolean' ||
-    !Array.isArray(learning_steps) ||
-    !learning_steps.every(
-      (step) => typeof step === 'string' && /^\d+[mhd]$/.test(step)
-    ) ||
-    !Array.isArray(relearning_steps) ||
-    !relearning_steps.every(
-      (step) => typeof step === 'string' && /^\d+[mhd]$/.test(step)
-    )
-  ) {
+  if (!hasValidSchedulerParameters(parsed))
     throw new FlashcardError('INVALID_SCHEDULER_STATE');
-  }
 
   try {
     const stored = parsed as unknown as FSRSParameters;
@@ -182,6 +187,30 @@ function decodeCard(serialized: string): Card {
   const due = new Date(card.due);
   const lastReview = card.last_review ? new Date(card.last_review) : undefined;
   if (
+    ![
+      card.stability,
+      card.difficulty,
+      card.elapsed_days,
+      card.scheduled_days,
+      card.learning_steps,
+      card.reps,
+      card.lapses,
+      card.state
+    ].every((value) => typeof value === 'number' && Number.isFinite(value)) ||
+    card.stability < 0 ||
+    card.difficulty < 0 ||
+    card.difficulty > 10 ||
+    card.elapsed_days < 0 ||
+    card.scheduled_days < 0 ||
+    !Number.isInteger(card.learning_steps) ||
+    card.learning_steps < 0 ||
+    !Number.isInteger(card.reps) ||
+    card.reps < 0 ||
+    !Number.isInteger(card.lapses) ||
+    card.lapses < 0 ||
+    !Number.isInteger(card.state) ||
+    card.state < 0 ||
+    card.state > 3 ||
     Number.isNaN(due.getTime()) ||
     (card.last_review !== undefined &&
       (typeof card.last_review !== 'string' ||
@@ -209,7 +238,16 @@ export async function createDeck(
   session: LearnerSession,
   input: { id: string; name: string }
 ) {
-  if (!input.name.trim() || exceedsCodePointLimit(input.name, 160))
+  if (
+    !isRecord(input) ||
+    typeof input.id !== 'string' ||
+    !input.id.trim() ||
+    input.id.includes('\0') ||
+    typeof input.name !== 'string' ||
+    !input.name.trim() ||
+    input.name.includes('\0') ||
+    exceedsCodePointLimit(input.name, 160)
+  )
     throw new FlashcardError('INVALID_DECK');
   await client.execute({
     sql: 'INSERT INTO native_flashcard_decks (id, owner_id, name) VALUES (?, ?, ?)',
@@ -223,6 +261,16 @@ export async function createNote(
   input: CreateNoteInput
 ) {
   if (
+    !isRecord(input) ||
+    typeof input.id !== 'string' ||
+    !input.id.trim() ||
+    input.id.includes('\0') ||
+    typeof input.deckId !== 'string' ||
+    !input.deckId.trim() ||
+    input.deckId.includes('\0')
+  )
+    throw new FlashcardError('INVALID_NOTE');
+  if (
     typeof input.sourceId !== 'string' ||
     !sourceIdPattern.test(input.sourceId)
   )
@@ -233,6 +281,11 @@ export async function createNote(
   const now = card.due.getTime();
   const tx = await beginWrite(client);
   try {
+    const deck = await tx.execute({
+      sql: 'SELECT 1 FROM native_flashcard_decks WHERE id = ? AND owner_id = ?',
+      args: [input.deckId, session.userId]
+    });
+    if (!deck.rows[0]) throw new FlashcardError('NOT_FOUND');
     await tx.execute({
       sql: "INSERT INTO native_flashcard_notes (id, source_id, owner_id, deck_id, kind, content_json, status) VALUES (?, ?, ?, ?, ?, ?, 'draft')",
       args: [
@@ -289,6 +342,10 @@ export async function getNote(
   });
   const row = result.rows[0];
   if (!row) throw new FlashcardError('NOT_FOUND');
+  const cardScheduler = readCardScheduler(
+    row.scheduler_version,
+    String(row.parameters_json)
+  );
   return {
     id: String(row.id),
     sourceId: String(row.source_id),
@@ -304,7 +361,7 @@ export async function getNote(
       revision: Number(row.revision),
       suspended: Boolean(row.suspended),
       schedulerVersion: String(row.scheduler_version),
-      parameters: JSON.parse(String(row.parameters_json)) as typeof parameters
+      parameters: cardScheduler.parameters
     }
   };
 }
@@ -322,10 +379,12 @@ export async function submitReview(
   if (
     typeof input.submissionId !== 'string' ||
     input.submissionId.trim().length < 1 ||
-    input.submissionId.length > 256
+    exceedsCodePointLimit(input.submissionId, 256)
   ) {
     throw new FlashcardError('INVALID_SUBMISSION_ID');
   }
+  if (!Object.hasOwn(ratings, input.rating))
+    throw new FlashcardError('INVALID_RATING');
   const tx = await beginWrite(client);
   try {
     const previous = await tx.execute({
@@ -351,12 +410,13 @@ export async function submitReview(
     }
 
     const found = await tx.execute({
-      sql: 'SELECT c.state_json, c.revision, c.scheduler_version, c.parameters_json, n.status FROM native_flashcards c JOIN native_flashcard_notes n ON n.id = c.note_id AND n.owner_id = c.owner_id WHERE c.id = ? AND c.owner_id = ?',
+      sql: 'SELECT c.state_json, c.revision, c.suspended, c.scheduler_version, c.parameters_json, n.status FROM native_flashcards c JOIN native_flashcard_notes n ON n.id = c.note_id AND n.owner_id = c.owner_id WHERE c.id = ? AND c.owner_id = ?',
       args: [input.cardId, session.userId]
     });
     const cardRow = found.rows[0];
     if (!cardRow) throw new FlashcardError('NOT_FOUND');
     if (cardRow.status !== 'approved') throw new FlashcardError('NOT_APPROVED');
+    if (Number(cardRow.suspended) !== 0) throw new FlashcardError('SUSPENDED');
     if (Number(cardRow.revision) !== input.expectedRevision)
       throw new FlashcardError('STALE_REVIEW');
 

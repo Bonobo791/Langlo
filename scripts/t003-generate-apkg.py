@@ -105,7 +105,10 @@ def build(output: Path, *, edited: bool = False, renamed: bool = False) -> None:
 
 def resolve_output_directory(argument: str) -> Path:
     output_dir = Path(argument).resolve()
-    allowed_roots = (ARTIFACT_OUTPUT_ROOT.resolve(), Path(tempfile.gettempdir()).resolve())
+    temporary_root = Path(tempfile.gettempdir()).resolve()
+    if output_dir == temporary_root:
+        raise SystemExit("OUTPUT_DIRECTORY must be a child directory of an allowed root")
+    allowed_roots = (ARTIFACT_OUTPUT_ROOT.resolve(), temporary_root)
     for root in allowed_roots:
         try:
             output_dir.relative_to(root)

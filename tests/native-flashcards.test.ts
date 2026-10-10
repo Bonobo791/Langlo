@@ -19,7 +19,9 @@ import { seedStudy } from './fixtures/study';
 
 const fixtures: FixtureTarget[] = [];
 afterEach(async () => {
-  await Promise.all(fixtures.splice(0).map(disposeDisposableFixture));
+  await Promise.all(
+    fixtures.splice(0).map((target) => disposeDisposableFixture(target))
+  );
 });
 
 async function fixture() {
@@ -124,6 +126,18 @@ describe('native flashcard persistence feasibility', () => {
           name: supplementaryCharacter.repeat(161)
         })
       ).rejects.toMatchObject({ code: 'INVALID_DECK' });
+      for (const [id, name] of [
+        ['deck-10000000-0000-4000-8000-000000000022', '\t\u00a0'],
+        ['deck-10000000-0000-4000-8000-000000000023', 'x' + ' '.repeat(160)],
+        ['deck-10000000-0000-4000-8000-000000000024', 'French\u0000hidden']
+      ]) {
+        await expect(
+          db.client.execute({
+            sql: 'INSERT INTO native_flashcard_decks (id, owner_id, name) VALUES (?, ?, ?)',
+            args: [id, learner.userId, name]
+          })
+        ).rejects.toThrow(/CHECK|CONSTRAINT/iu);
+      }
       await expect(
         createNote(db.client, learner, {
           id: 'note-10000000-0000-4000-8000-000000000010',
@@ -247,13 +261,13 @@ describe('native flashcard persistence feasibility', () => {
           sql: 'UPDATE native_flashcard_review_events SET rating = ? WHERE owner_id = ? AND id = ?',
           args: ['again', learner.userId, review.submissionId]
         })
-      ).rejects.toThrow(/cannot be updated/i);
+      ).rejects.toThrow(/cannot be updated/iu);
       await expect(
         db.client.execute(
           'DELETE FROM native_flashcard_review_events WHERE owner_id = ? AND id = ?',
           [learner.userId, review.submissionId]
         )
-      ).rejects.toThrow(/cannot be deleted/i);
+      ).rejects.toThrow(/cannot be deleted/iu);
       await db.client.execute('PRAGMA recursive_triggers = OFF');
       await expect(
         db.client.execute({
@@ -270,7 +284,7 @@ describe('native flashcard persistence feasibility', () => {
             '{}'
           ]
         })
-      ).rejects.toThrow(/cannot be replaced/i);
+      ).rejects.toThrow(/cannot be replaced/iu);
       await expect(
         db.client.execute({
           sql: 'INSERT OR REPLACE INTO native_flashcard_review_events (rowid, id, owner_id, card_id, expected_revision, rating, reviewed_at, scheduler_version, parameters_json, result_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -287,7 +301,7 @@ describe('native flashcard persistence feasibility', () => {
             '{}'
           ]
         })
-      ).rejects.toThrow(/rowid|column/i);
+      ).rejects.toThrow(/rowid|column/iu);
       expect(
         (
           await db.client.execute(
@@ -609,11 +623,9 @@ describe('native flashcard persistence feasibility', () => {
           rating: 'good'
         })
       ).rejects.toMatchObject({ code: 'INVALID_SCHEDULER_STATE' });
-      await expect(getNote(db.client, learner, note.id)).resolves.toMatchObject(
-        {
-          card: { revision: 0, schedulerVersion: 'ts-fsrs@5.4.2' }
-        }
-      );
+      await expect(getNote(db.client, learner, note.id)).rejects.toMatchObject({
+        code: 'INVALID_SCHEDULER_STATE'
+      });
       expect(
         (
           await db.client.execute(
@@ -647,6 +659,15 @@ describe('native flashcard persistence feasibility', () => {
       ).rejects.toMatchObject({ code: 'INVALID_CONTENT' });
       await expect(
         createNote(db.client, learner, {
+          id: 'note-10000000-0000-4000-8000-000000000022',
+          sourceId: testSourceId('10000000-0000-4000-8000-000000000022'),
+          deckId: 'deck-10000000-0000-4000-8000-000000000010',
+          kind: 'basic',
+          content: { front: 'Hello\u0000 hidden', back: 'Bonjour' }
+        })
+      ).rejects.toMatchObject({ code: 'INVALID_CONTENT' });
+      await expect(
+        createNote(db.client, learner, {
           id: 'note-10000000-0000-4000-8000-000000000011',
           sourceId: testSourceId('10000000-0000-4000-8000-000000000011'),
           deckId: 'deck-10000000-0000-4000-8000-000000000010',
@@ -676,7 +697,33 @@ describe('native flashcard persistence feasibility', () => {
             JSON.stringify({ front: 'Hello', back: 'Bonjour', extra: 'x' })
           ]
         })
-      ).rejects.toThrow(/CHECK|CONSTRAINT/i);
+      ).rejects.toThrow(/CHECK|CONSTRAINT/iu);
+      await expect(
+        db.client.execute({
+          sql: 'INSERT INTO native_flashcard_notes (id, source_id, owner_id, deck_id, kind, content_json) VALUES (?, ?, ?, ?, ?, ?)',
+          args: [
+            'note-10000000-0000-4000-8000-000000000024',
+            `${testSourceId('10000000-0000-4000-8000-000000000024')}\u0000`,
+            learner.userId,
+            'deck-10000000-0000-4000-8000-000000000010',
+            'basic',
+            JSON.stringify({ front: 'Bonjour', back: 'Hello' })
+          ]
+        })
+      ).rejects.toThrow(/CHECK|CONSTRAINT/iu);
+      await expect(
+        db.client.execute({
+          sql: 'INSERT INTO native_flashcard_notes (id, source_id, owner_id, deck_id, kind, content_json) VALUES (?, ?, ?, ?, ?, ?)',
+          args: [
+            'note-10000000-0000-4000-8000-000000000023',
+            testSourceId('10000000-0000-4000-8000-000000000023'),
+            learner.userId,
+            'deck-10000000-0000-4000-8000-000000000010',
+            'basic',
+            JSON.stringify({ front: 'Hello\u0000 hidden', back: 'Bonjour' })
+          ]
+        })
+      ).rejects.toThrow(/CHECK|CONSTRAINT/iu);
       await expect(
         db.client.execute({
           sql: 'INSERT INTO native_flashcard_notes (id, source_id, owner_id, deck_id, kind, content_json) VALUES (?, ?, ?, ?, ?, ?)',
@@ -689,7 +736,7 @@ describe('native flashcard persistence feasibility', () => {
             JSON.stringify({ front: '\t\n\u00a0\ufeff', back: 'Hello' })
           ]
         })
-      ).rejects.toThrow(/CHECK|CONSTRAINT/i);
+      ).rejects.toThrow(/CHECK|CONSTRAINT/iu);
       await expect(
         db.client.execute({
           sql: 'INSERT INTO native_flashcard_notes (id, source_id, owner_id, deck_id, kind, content_json) VALUES (?, ?, ?, ?, ?, ?)',
@@ -702,7 +749,7 @@ describe('native flashcard persistence feasibility', () => {
             JSON.stringify({ front: 'x'.repeat(4097), back: 'Hello' })
           ]
         })
-      ).rejects.toThrow(/CHECK|CONSTRAINT/i);
+      ).rejects.toThrow(/CHECK|CONSTRAINT/iu);
       await expect(
         db.client.execute({
           sql: 'INSERT INTO native_flashcard_notes (id, source_id, owner_id, deck_id, kind, content_json) VALUES (?, ?, ?, ?, ?, ?)',
@@ -715,7 +762,7 @@ describe('native flashcard persistence feasibility', () => {
             JSON.stringify({ front: `x${' '.repeat(4096)}`, back: 'Hello' })
           ]
         })
-      ).rejects.toThrow(/CHECK|CONSTRAINT/i);
+      ).rejects.toThrow(/CHECK|CONSTRAINT/iu);
       await expect(
         db.client.execute({
           sql: 'INSERT INTO native_flashcard_notes (id, source_id, owner_id, deck_id, kind, content_json) VALUES (?, ?, ?, ?, ?, ?)',
@@ -728,7 +775,7 @@ describe('native flashcard persistence feasibility', () => {
             JSON.stringify({ text: `{{c1::x}}${' '.repeat(4088)}` })
           ]
         })
-      ).rejects.toThrow(/CHECK|CONSTRAINT/i);
+      ).rejects.toThrow(/CHECK|CONSTRAINT/iu);
     } finally {
       db.close();
     }
@@ -783,6 +830,14 @@ describe('native flashcard persistence feasibility', () => {
         })
       ).rejects.toMatchObject({ code: 'INVALID_SUBMISSION_ID' });
       await expect(
+        submitReview(db.client, learner, {
+          cardId: note.cardId,
+          submissionId: '𐐷'.repeat(257),
+          expectedRevision: 0,
+          rating: 'good'
+        })
+      ).rejects.toMatchObject({ code: 'INVALID_SUBMISSION_ID' });
+      await expect(
         db.client.execute({
           sql: 'INSERT INTO native_flashcard_review_events (id, owner_id, card_id, expected_revision, rating, reviewed_at, scheduler_version, parameters_json, result_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
           args: [
@@ -797,7 +852,7 @@ describe('native flashcard persistence feasibility', () => {
             '{}'
           ]
         })
-      ).rejects.toThrow(/CHECK|CONSTRAINT/i);
+      ).rejects.toThrow(/CHECK|CONSTRAINT/iu);
       expect((await getNote(db.client, learner, note.id)).card.revision).toBe(
         0
       );
@@ -837,6 +892,107 @@ describe('native flashcard persistence feasibility', () => {
     }
   });
 
+  it('rejects persisted card objects missing required FSRS state', async () => {
+    const target = await fixture();
+    const learner = testSession('learner-a');
+    const db = await openFixtureDatabase(target);
+    try {
+      await createDeck(db.client, learner, {
+        id: 'deck-10000000-0000-4000-8000-000000000030',
+        name: 'French'
+      });
+      const note = await createNote(db.client, learner, {
+        id: 'note-10000000-0000-4000-8000-000000000030',
+        sourceId: testSourceId('10000000-0000-4000-8000-000000000030'),
+        deckId: 'deck-10000000-0000-4000-8000-000000000030',
+        kind: 'basic',
+        content: { front: 'Bonjour', back: 'Hello' }
+      });
+      await db.client.execute(
+        'UPDATE native_flashcards SET state_json = \'{"due":"2026-01-01T00:00:00.000Z"}\' WHERE id = ? AND owner_id = ?',
+        [note.cardId, learner.userId]
+      );
+      await expect(getNote(db.client, learner, note.id)).rejects.toMatchObject({
+        code: 'INVALID_CARD_STATE'
+      });
+    } finally {
+      db.close();
+    }
+  });
+
+  it('rejects runtime-invalid ratings and reviews of suspended cards', async () => {
+    const target = await fixture();
+    const learner = testSession('learner-a');
+    const db = await openFixtureDatabase(target);
+    try {
+      await createDeck(db.client, learner, {
+        id: 'deck-10000000-0000-4000-8000-000000000031',
+        name: 'French'
+      });
+      const note = await createNote(db.client, learner, {
+        id: 'note-10000000-0000-4000-8000-000000000031',
+        sourceId: testSourceId('10000000-0000-4000-8000-000000000031'),
+        deckId: 'deck-10000000-0000-4000-8000-000000000031',
+        kind: 'basic',
+        content: { front: 'Bonjour', back: 'Hello' }
+      });
+      await approveNote(db.client, learner, note.id);
+      const invalidRating = submitReview(db.client, learner, {
+        cardId: note.cardId,
+        submissionId: 'review-10000000-0000-4000-8000-000000000031',
+        expectedRevision: 0,
+        rating: 'constructor'
+      } as unknown as Parameters<typeof submitReview>[2]);
+      await expect(invalidRating).rejects.toMatchObject({
+        code: 'INVALID_RATING'
+      });
+      await db.client.execute(
+        'UPDATE native_flashcards SET suspended = 1 WHERE id = ? AND owner_id = ?',
+        [note.cardId, learner.userId]
+      );
+      await expect(
+        submitReview(db.client, learner, {
+          cardId: note.cardId,
+          submissionId: 'review-10000000-0000-4000-8000-000000000032',
+          expectedRevision: 0,
+          rating: 'good'
+        })
+      ).rejects.toMatchObject({ code: 'SUSPENDED' });
+    } finally {
+      db.close();
+    }
+  });
+
+  it('validates runtime create inputs and returns NOT_FOUND for another learner deck', async () => {
+    const target = await fixture();
+    const learner = testSession('learner-a');
+    const otherLearner = testSession('learner-b');
+    const db = await openFixtureDatabase(target);
+    try {
+      await expect(
+        createDeck(db.client, learner, {
+          id: 'deck-invalid',
+          name: null
+        } as never)
+      ).rejects.toMatchObject({ code: 'INVALID_DECK' });
+      await createDeck(db.client, otherLearner, {
+        id: 'deck-10000000-0000-4000-8000-000000000032',
+        name: 'Other learner'
+      });
+      await expect(
+        createNote(db.client, learner, {
+          id: 'note-10000000-0000-4000-8000-000000000032',
+          sourceId: testSourceId('10000000-0000-4000-8000-000000000032'),
+          deckId: 'deck-10000000-0000-4000-8000-000000000032',
+          kind: 'basic',
+          content: { front: 'Bonjour', back: 'Hello' }
+        })
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    } finally {
+      db.close();
+    }
+  });
+
   it('requires source IDs to use the persistent Langlo identity format', async () => {
     const target = await fixture();
     const learner = testSession('learner-a');
@@ -867,7 +1023,7 @@ describe('native flashcard persistence feasibility', () => {
             JSON.stringify({ front: 'Bonjour', back: 'Hello' })
           ]
         })
-      ).rejects.toThrow(/CHECK|CONSTRAINT/i);
+      ).rejects.toThrow(/CHECK|CONSTRAINT/iu);
     } finally {
       db.close();
     }

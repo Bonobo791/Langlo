@@ -23,7 +23,9 @@ import * as schema from '../src/lib/server/db/schema';
 
 const fixtures: FixtureTarget[] = [];
 afterEach(async () => {
-  await Promise.all(fixtures.splice(0).map(disposeDisposableFixture));
+  await Promise.all(
+    fixtures.splice(0).map((target) => disposeDisposableFixture(target))
+  );
 });
 
 /** Allocate a tracked disposable target so clean and historical-upgrade tests can choose their migration prefix. */
@@ -62,7 +64,7 @@ describe('disposable libSQL migrations', () => {
       const before = (await old.client.execute('SELECT * FROM attempts')).rows;
       old.close();
       await expect(migrateFixtureDatabase(target)).rejects.toThrow(
-        /CHECK|CONSTRAINT/i
+        /CHECK|CONSTRAINT/iu
       );
       const unchanged = await openFixtureDatabase(target);
       try {
@@ -130,7 +132,7 @@ describe('disposable libSQL migrations', () => {
           .rows;
         old.close();
         await expect(migrateFixtureDatabase(target)).rejects.toThrow(
-          /CHECK|CONSTRAINT/i
+          /CHECK|CONSTRAINT/iu
         );
         const unchanged = await openFixtureDatabase(target);
         try {
@@ -250,7 +252,7 @@ describe('disposable libSQL migrations', () => {
       const reviewTable = await client.execute(
         "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'native_flashcard_review_events'"
       );
-      expect(String(reviewTable.rows[0].sql)).toMatch(/WITHOUT ROWID/i);
+      expect(String(reviewTable.rows[0].sql)).toMatch(/WITHOUT ROWID/iu);
       expect(
         (
           await client.execute(
