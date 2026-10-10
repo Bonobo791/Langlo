@@ -67,11 +67,7 @@ function validateNotes(
 }
 
 function identityFor(request: SyntheticAnkiRequest): string {
-  const stableKey = JSON.stringify([
-    request.learnerId,
-    request.profileId,
-    request.sourceId
-  ]);
+  const stableKey = JSON.stringify([request.learnerId, request.sourceId]);
   return `langlo:${createHash('sha256').update(stableKey).digest('hex')}`;
 }
 
@@ -102,6 +98,8 @@ async function findNotes(
   profileId: string,
   identity: string
 ): Promise<Array<{ noteId: number; identity: string }>> {
+  await verifyProfile(adapter, profileId);
+
   let response: unknown;
   try {
     response = await adapter.findSyntheticNotes({ profileId, identity });
@@ -109,6 +107,32 @@ async function findNotes(
     fail('Synthetic lookup failed.');
   }
   return validateNotes(response, identity);
+}
+
+async function verifyProfile(
+  adapter: SyntheticAnkiAdapter,
+  selectedProfileId: string
+): Promise<void> {
+  let profile: unknown;
+  try {
+    profile = await adapter.inspectSyntheticProfile(selectedProfileId);
+  } catch {
+    fail('Synthetic connector is not ready for this profile.');
+  }
+  if (
+    !isRecord(profile) ||
+    typeof profile.state !== 'string' ||
+    typeof profile.profileId !== 'string' ||
+    typeof profile.permission !== 'string'
+  ) {
+    fail('Malformed synthetic connector response.');
+  }
+  if (profile.profileId !== selectedProfileId) {
+    fail('Selected synthetic profile is unavailable.');
+  }
+  if (profile.state !== 'open' || profile.permission !== 'granted') {
+    fail('Synthetic connector is not ready for this profile.');
+  }
 }
 
 function oneMatch(
@@ -144,6 +168,8 @@ async function addOrRecover(
   identity: string,
   fields: Record<string, string>
 ): Promise<{ noteId: number; reusedExisting: boolean }> {
+  await verifyProfile(adapter, profileId);
+
   let added: unknown;
   try {
     added = await adapter.addSyntheticNote({
@@ -196,27 +222,6 @@ export async function runSyntheticAnkiSpike(
   adapter: SyntheticAnkiAdapter
 ): Promise<SyntheticAnkiResult> {
   validateRequest(request);
-
-  let profile: unknown;
-  try {
-    profile = await adapter.inspectSyntheticProfile(request.profileId);
-  } catch {
-    fail('Synthetic connector is not ready for this profile.');
-  }
-  if (
-    !isRecord(profile) ||
-    typeof profile.state !== 'string' ||
-    typeof profile.profileId !== 'string' ||
-    typeof profile.permission !== 'string'
-  ) {
-    fail('Malformed synthetic connector response.');
-  }
-  if (profile.profileId !== request.profileId) {
-    fail('Selected synthetic profile is unavailable.');
-  }
-  if (profile.state !== 'open' || profile.permission !== 'granted') {
-    fail('Synthetic connector is not ready for this profile.');
-  }
 
   const identity = identityFor(request);
   const existing = await findNotes(adapter, request.profileId, identity);
