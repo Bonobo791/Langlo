@@ -24,7 +24,7 @@ export const headers: string[];
 export function parseCsv(input: string): CsvRow[];
 export function validateManifest(
   manifest: Manifest,
-  files: Record<string, string>
+  files: Map<string, string>
 ): void;
 export function resolveRepositoryPath(root: string, path: string): string;
 export function validateCatalog(

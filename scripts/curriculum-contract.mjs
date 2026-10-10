@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { log } from 'node:console';
 import { readFileSync, realpathSync } from 'node:fs';
-import { isAbsolute, relative, resolve, sep } from 'node:path';
+import { isAbsolute, relative, resolve, sep, win32 } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
@@ -33,23 +33,69 @@ const tracks = [
   'English A1',
   'English A2'
 ];
-const allowedEvidence = ['source-aligned', 'local-alignment', 'provisional'];
-const semver =
-  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z.-]+))?(?:\+([0-9A-Za-z.-]+))?$/u;
-
+const allowedEvidence = new Set([
+  'source-aligned',
+  'local-alignment',
+  'provisional'
+]);
 /** @param {string} value */
 function isSemver(value) {
-  const match = semver.exec(value);
-  return Boolean(
-    match &&
-    (!match[4] ||
-      match[4]
-        .split('.')
-        .every(
-          (identifier) => identifier.length > 0 && !/^0\d+$/u.test(identifier)
-        )) &&
-    (!match[5] || match[5].split('.').every(Boolean))
+  const buildIndex = value.indexOf('+');
+  if (buildIndex !== value.lastIndexOf('+')) return false;
+  const version = buildIndex < 0 ? value : value.slice(0, buildIndex);
+  const build = buildIndex < 0 ? '' : value.slice(buildIndex + 1);
+  const prereleaseIndex = version.indexOf('-');
+  const core =
+    prereleaseIndex < 0 ? version : version.slice(0, prereleaseIndex);
+  const prerelease =
+    prereleaseIndex < 0 ? '' : version.slice(prereleaseIndex + 1);
+  return (
+    core.split('.').length === 3 &&
+    core.split('.').every(isCoreNumber) &&
+    (!prerelease || validIdentifiers(prerelease, true)) &&
+    (!build || validIdentifiers(build, false)) &&
+    (prereleaseIndex < 0 || prerelease.length > 0) &&
+    (buildIndex < 0 || build.length > 0)
   );
+}
+
+/** @param {string} value */
+function isCoreNumber(value) {
+  return (
+    value.length > 0 &&
+    (value === '0' || value[0] !== '0') &&
+    [...value].every((char) => char >= '0' && char <= '9')
+  );
+}
+
+/** @param {string} value @param {boolean} disallowLeadingZero */
+function validIdentifiers(value, disallowLeadingZero) {
+  return value
+    .split('.')
+    .every(
+      (identifier) =>
+        identifier.length > 0 &&
+        [...identifier].every(isSemverCharacter) &&
+        (!disallowLeadingZero ||
+          !isNumericIdentifier(identifier) ||
+          identifier.length === 1 ||
+          identifier[0] !== '0')
+    );
+}
+
+/** @param {string} value */
+function isSemverCharacter(value) {
+  return (
+    (value >= '0' && value <= '9') ||
+    (value >= 'A' && value <= 'Z') ||
+    (value >= 'a' && value <= 'z') ||
+    value === '-'
+  );
+}
+
+/** @param {string} value */
+function isNumericIdentifier(value) {
+  return [...value].every((char) => char >= '0' && char <= '9');
 }
 
 /** @param {CsvState} state */
@@ -174,11 +220,24 @@ function digest(value) {
 /** @param {string} root @param {string} path */
 export function resolveRepositoryPath(root, path) {
   requireCondition(
-    typeof path === 'string' && path.length > 0,
-    'Repository path must be a non-empty string.'
+    typeof path === 'string' &&
+      path.length > 0 &&
+      !isAbsolute(path) &&
+      !win32.parse(path).root &&
+      !path.split(/[\\/]/u).includes('..'),
+    'Repository path must be relative and contain no parent segments.'
   );
   const repositoryRoot = realpathSync(root);
-  const targetPath = realpathSync(resolve(repositoryRoot, path));
+  const joinedPath = resolve(repositoryRoot, path);
+  const joinedRelativePath = relative(repositoryRoot, joinedPath);
+  requireCondition(
+    joinedRelativePath !== '' &&
+      joinedRelativePath !== '..' &&
+      !joinedRelativePath.startsWith(`..${sep}`) &&
+      !isAbsolute(joinedRelativePath),
+    `Path resolves outside the repository: ${path}.`
+  );
+  const targetPath = realpathSync(joinedPath);
   const relativePath = relative(repositoryRoot, targetPath);
   requireCondition(
     relativePath !== '' &&
@@ -195,7 +254,38 @@ function readRepositoryFile(root, path) {
   return readFileSync(resolveRepositoryPath(root, path), 'utf8');
 }
 
-/** @param {Manifest} manifest @param {Record<string, string>} files */
+/** @param {Manifest} manifest @param {Map<string, string>} files */
+function validateManifestFiles(manifest, files) {
+  for (const [path, expectedDigest] of [
+    [manifest.coverage_file, manifest.coverage_sha256],
+    [manifest.prerequisites_file, manifest.prerequisites_sha256],
+    [manifest.id_registry_file, manifest.id_registry_sha256]
+  ]) {
+    requireCondition(
+      typeof path === 'string' &&
+        path.length > 0 &&
+        !isAbsolute(path) &&
+        !win32.parse(path).root &&
+        !path.split(/[\\/]/u).includes('..'),
+      `Invalid manifest path: ${path}.`
+    );
+    const content = files.get(path);
+    requireCondition(
+      typeof content === 'string',
+      `Manifest file is missing: ${path}.`
+    );
+    requireCondition(
+      /^[a-f\d]{64}$/u.test(expectedDigest),
+      `Invalid digest for ${path}.`
+    );
+    requireCondition(
+      digest(content) === expectedDigest,
+      `Digest mismatch: ${path}.`
+    );
+  }
+}
+
+/** @param {Manifest} manifest @param {Map<string, string>} files */
 export function validateManifest(manifest, files) {
   requireCondition(
     manifest.manifest_version === 1,
@@ -223,93 +313,70 @@ export function validateManifest(manifest, files) {
       JSON.stringify(['French A1']),
     'The French A1 subset must be declared.'
   );
-
-  for (const [pathKey, hashKey] of [
-    ['coverage_file', 'coverage_sha256'],
-    ['prerequisites_file', 'prerequisites_sha256'],
-    ['id_registry_file', 'id_registry_sha256']
-  ]) {
-    const path = manifest[pathKey];
-    requireCondition(
-      typeof path === 'string' &&
-        path.length > 0 &&
-        !path.startsWith('/') &&
-        !path.split('/').includes('..'),
-      `Invalid manifest path: ${pathKey}.`
-    );
-    requireCondition(
-      typeof files[path] === 'string',
-      `Manifest file is missing: ${path}.`
-    );
-    requireCondition(
-      /^[a-f\d]{64}$/u.test(manifest[hashKey]),
-      `Invalid digest: ${hashKey}.`
-    );
-    requireCondition(
-      digest(files[path]) === manifest[hashKey],
-      `Digest mismatch: ${path}.`
-    );
-  }
+  validateManifestFiles(manifest, files);
 }
 
-/** @param {CsvRow[]} records @param {Set<string>} knownSources @param {Set<string>} registryIds @returns {Catalog} */
-export function validateCatalog(records, knownSources, registryIds) {
+/** @param {CsvRow[]} records */
+function validateCatalogHeader(records) {
   requireCondition(
     records[0]?.length === headers.length &&
       records[0].every((value, index) => value === headers[index]),
     'Invalid catalog header.'
   );
-  const catalog = new Map();
-  for (const row of records.slice(1)) {
-    requireCondition(
-      row.length === headers.length,
-      `Invalid row width for ${row[0] ?? '<unknown>'}.`
-    );
-    requireCondition(
-      row.every(
-        (value, index) =>
-          index === headers.length - 1 || value.trim().length > 0
-      ),
-      `Empty required field for ${row[0]}.`
-    );
-    const [
-      id,
-      language,
-      level,
-      ,
-      ,
-      sourceIds,
-      ,
-      evidenceStatus,
-      ,
-      lifecycleStatus,
-      replacedBy
-    ] = row;
-    requireCondition(!catalog.has(id), `Duplicate skill ID: ${id}.`);
-    requireCondition(
-      tracks.includes(`${language} ${level}`),
-      `Unsupported language and level: ${language} ${level}.`
-    );
-    requireCondition(
-      allowedEvidence.includes(evidenceStatus),
-      `Invalid evidence status for ${id}.`
-    );
-    requireCondition(
-      ['active', 'retired'].includes(lifecycleStatus),
-      `Invalid lifecycle status for ${id}.`
-    );
-    requireCondition(
-      lifecycleStatus === 'retired' || replacedBy === '',
-      `Active skill has a replacement: ${id}.`
-    );
-    for (const sourceId of sourceIds.split(';'))
-      requireCondition(
-        knownSources.has(sourceId),
-        `Unknown source ${sourceId} for ${id}.`
-      );
-    catalog.set(id, row);
-  }
+}
 
+/** @param {CsvRow} row @param {Catalog} catalog @param {Set<string>} knownSources */
+function validateCatalogRow(row, catalog, knownSources) {
+  requireCondition(
+    row.length === headers.length,
+    `Invalid row width for ${row[0] ?? '<unknown>'}.`
+  );
+  requireCondition(
+    row.every(
+      (value, index) => index === headers.length - 1 || value.trim().length > 0
+    ),
+    `Empty required field for ${row[0]}.`
+  );
+  const [
+    id,
+    language,
+    level,
+    ,
+    ,
+    sourceIds,
+    ,
+    evidenceStatus,
+    ,
+    status,
+    replacement
+  ] = row;
+  requireCondition(!catalog.has(id), `Duplicate skill ID: ${id}.`);
+  requireCondition(
+    tracks.includes(`${language} ${level}`),
+    `Unsupported language and level: ${language} ${level}.`
+  );
+  requireCondition(
+    allowedEvidence.has(evidenceStatus),
+    `Invalid evidence status for ${id}.`
+  );
+  requireCondition(
+    ['active', 'retired'].includes(status),
+    `Invalid lifecycle status for ${id}.`
+  );
+  requireCondition(
+    status === 'retired' || replacement === '',
+    `Active skill has a replacement: ${id}.`
+  );
+  for (const sourceId of sourceIds.split(';'))
+    requireCondition(
+      knownSources.has(sourceId),
+      `Unknown source ${sourceId} for ${id}.`
+    );
+  catalog.set(id, row);
+}
+
+/** @param {CsvRow[]} records */
+function validateCatalogTracks(records) {
   const catalogTracks = new Set(
     records.slice(1).map((row) => `${row[1]} ${row[2]}`)
   );
@@ -318,8 +385,16 @@ export function validateCatalog(records, knownSources, registryIds) {
       tracks.every((track) => catalogTracks.has(track)),
     'Catalog does not contain exactly the five requested tracks.'
   );
+}
+
+/** @param {Catalog} catalog @param {Set<string>} registryIds */
+function validateCatalogRegistry(catalog, registryIds) {
   for (const id of catalog.keys())
     requireCondition(registryIds.has(id), `Skill ID is not registered: ${id}.`);
+}
+
+/** @param {Catalog} catalog */
+function validateReplacements(catalog) {
   for (const row of catalog.values()) {
     const id = row[0];
     for (const replacement of row[10] ? row[10].split(';') : []) {
@@ -337,24 +412,18 @@ export function validateCatalog(records, knownSources, registryIds) {
       );
     }
   }
-  return catalog;
 }
 
-/** @param {IdRegistry} registry @param {Catalog} catalog @param {string[]} [previousIds] */
-export function validateIdRegistry(registry, catalog, previousIds = []) {
-  const ids = validateIdRegistryShape(registry);
-  for (const id of catalog.keys())
-    requireCondition(ids.includes(id), `Skill ID is not registered: ${id}.`);
-  for (const id of ids)
-    requireCondition(
-      catalog.has(id),
-      `Registered ID is missing its catalog tombstone: ${id}.`
-    );
-  for (const id of previousIds)
-    requireCondition(
-      ids.includes(id),
-      `Previously registered ID was removed: ${id}.`
-    );
+/** @param {CsvRow[]} records @param {Set<string>} knownSources @param {Set<string>} registryIds @returns {Catalog} */
+export function validateCatalog(records, knownSources, registryIds) {
+  validateCatalogHeader(records);
+  const catalog = new Map();
+  for (const row of records.slice(1))
+    validateCatalogRow(row, catalog, knownSources);
+  validateCatalogTracks(records);
+  validateCatalogRegistry(catalog, registryIds);
+  validateReplacements(catalog);
+  return catalog;
 }
 
 /** @param {unknown} value @returns {string[]} */
@@ -376,8 +445,25 @@ export function validateIdRegistryShape(value) {
   return value.ids;
 }
 
-/** @param {Graph} graph @param {Catalog} catalog @returns {number} */
-export function validateGraph(graph, catalog) {
+/** @param {IdRegistry} registry @param {Catalog} catalog @param {string[]} [previousIds] */
+export function validateIdRegistry(registry, catalog, previousIds = []) {
+  const ids = validateIdRegistryShape(registry);
+  for (const id of catalog.keys())
+    requireCondition(ids.includes(id), `Skill ID is not registered: ${id}.`);
+  for (const id of ids)
+    requireCondition(
+      catalog.has(id),
+      `Registered ID is missing its catalog tombstone: ${id}.`
+    );
+  for (const id of previousIds)
+    requireCondition(
+      ids.includes(id),
+      `Previously registered ID was removed: ${id}.`
+    );
+}
+
+/** @param {Graph} graph @param {Catalog} catalog @returns {Map<string, string[]>} */
+function indexGraph(graph, catalog) {
   requireCondition(
     graph.schema_version === 1 && Array.isArray(graph.nodes),
     'Invalid prerequisite graph.'
@@ -399,7 +485,11 @@ export function validateGraph(graph, catalog) {
       [...catalog.keys()].every((id) => nodes.has(id)),
     'Graph and catalog IDs differ.'
   );
+  return nodes;
+}
 
+/** @param {Map<string, string[]>} nodes @param {Catalog} catalog */
+function validateGraphEdges(nodes, catalog) {
   for (const [id, prerequisites] of nodes) {
     const skill = catalog.get(id);
     requireCondition(
@@ -433,7 +523,10 @@ export function validateGraph(graph, catalog) {
       );
     }
   }
+}
 
+/** @param {Map<string, string[]>} nodes */
+function validateGraphCycles(nodes) {
   const state = new Map();
   const visit = (id) => {
     requireCondition(
@@ -446,7 +539,35 @@ export function validateGraph(graph, catalog) {
     state.set(id, 'done');
   };
   for (const id of nodes.keys()) visit(id);
+}
+
+/** @param {Graph} graph @param {Catalog} catalog @returns {number} */
+export function validateGraph(graph, catalog) {
+  const nodes = indexGraph(graph, catalog);
+  validateGraphEdges(nodes, catalog);
+  validateGraphCycles(nodes);
   return [...nodes.values()].reduce((total, ids) => total + ids.length, 0);
+}
+
+/** @param {string} root @param {Manifest} manifest @returns {Map<string, string>} */
+function readBundleFiles(root, manifest) {
+  return new Map(
+    [
+      manifest.coverage_file,
+      manifest.prerequisites_file,
+      manifest.id_registry_file
+    ].map((path) => [path, readRepositoryFile(root, path)])
+  );
+}
+
+/** @param {string} root @returns {Set<string>} */
+function readKnownSources(root) {
+  const evidence = readRepositoryFile(root, 'docs/evidence/T004.md');
+  return new Set(
+    [...evidence.matchAll(/^\|\s*`([A-Z0-9-]+)`\s*\|/gmu)].map(
+      (match) => match[1]
+    )
+  );
 }
 
 /** @param {string} root @param {string[]} [previousIds] */
@@ -454,26 +575,14 @@ export function validateBundle(root, previousIds = []) {
   const manifest = JSON.parse(
     readRepositoryFile(root, 'content/curriculum-manifest.json')
   );
-  const paths = [
-    manifest.coverage_file,
-    manifest.prerequisites_file,
-    manifest.id_registry_file
-  ];
-  const files = Object.fromEntries(
-    paths.map((path) => [path, readRepositoryFile(root, path)])
-  );
+  const files = readBundleFiles(root, manifest);
   validateManifest(manifest, files);
-  const evidence = readRepositoryFile(root, 'docs/evidence/T004.md');
-  const knownSources = new Set(
-    [...evidence.matchAll(/^\|\s*`([A-Z0-9-]+)`\s*\|/gmu)].map(
-      (match) => match[1]
-    )
-  );
-  const registry = JSON.parse(files[manifest.id_registry_file]);
-  const records = parseCsv(files[manifest.coverage_file]);
+  const knownSources = readKnownSources(root);
+  const registry = JSON.parse(files.get(manifest.id_registry_file));
+  const records = parseCsv(files.get(manifest.coverage_file));
   const catalog = validateCatalog(records, knownSources, new Set(registry.ids));
   validateIdRegistry(registry, catalog, previousIds);
-  const graph = JSON.parse(files[manifest.prerequisites_file]);
+  const graph = JSON.parse(files.get(manifest.prerequisites_file));
   const edges = validateGraph(graph, catalog);
   return { manifest, records, catalog, registry, graph, edges };
 }

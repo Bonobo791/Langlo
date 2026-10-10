@@ -42,15 +42,24 @@ describe('versioned curriculum bundle contract', () => {
       resolveRepositoryPath(root, 'content/curriculum-manifest.json')
     ).toBe(resolve(root, 'content/curriculum-manifest.json'));
     expect(() => resolveRepositoryPath(root, '../')).toThrow(
-      /outside the repository/u
+      /parent segments/u
     );
     expect(() => resolveRepositoryPath(root, '/tmp')).toThrow(
-      /outside the repository/u
+      /parent segments/u
+    );
+    expect(() =>
+      resolveRepositoryPath(
+        root,
+        resolve(root, 'content/curriculum-id-registry.json')
+      )
+    ).toThrow(/parent segments/u);
+    expect(() => resolveRepositoryPath(root, String.raw`C:\temp`)).toThrow(
+      /parent segments/u
     );
   });
 
   it('uses a pre-release version, separate publication status, explicit scope and file hashes', () => {
-    const files = Object.fromEntries(
+    const files = new Map(
       [
         manifest.coverage_file,
         manifest.prerequisites_file,
@@ -63,6 +72,7 @@ describe('versioned curriculum bundle contract', () => {
     expect(manifest.publication_status).toBe('draft');
     expect(manifest.dependency_semantics).toBe('recommended_teaching_order');
     expect(manifest.selected_subset_tracks).toContain('French A1');
+    expect(() => validateManifest(manifest, files)).not.toThrow();
     expect(() =>
       validateManifest(
         { ...manifest, dependency_semantics: 'mastery_gate' },
@@ -84,6 +94,24 @@ describe('versioned curriculum bundle contract', () => {
     expect(() =>
       validateManifest(
         { ...manifest, curriculum_version: '0.1.0-draft..1' },
+        files
+      )
+    ).toThrow(/Invalid curriculum version/u);
+    expect(() =>
+      validateManifest({ ...manifest, curriculum_version: '0.1.0-0' }, files)
+    ).not.toThrow();
+    expect(() =>
+      validateManifest(
+        { ...manifest, curriculum_version: '0.1.0+build.01' },
+        files
+      )
+    ).not.toThrow();
+    expect(() =>
+      validateManifest({ ...manifest, curriculum_version: '01.1.0' }, files)
+    ).toThrow(/Invalid curriculum version/u);
+    expect(() =>
+      validateManifest(
+        { ...manifest, curriculum_version: '0.1.0-alpha+meta+again' },
         files
       )
     ).toThrow(/Invalid curriculum version/u);
