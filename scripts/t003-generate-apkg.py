@@ -17,6 +17,7 @@ BASIC_NOTE_ID = "note-10000000-0000-4000-8000-000000000001"
 CLOZE_NOTE_ID = "note-10000000-0000-4000-8000-000000000004"
 PACKAGE_TIMESTAMP = 1_791_624_000
 ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
+COLLECTION_FILENAME = "collection.anki2"
 
 
 def stable_number(source_identity: str) -> int:
@@ -33,9 +34,9 @@ def normalize_package(output: Path, *, note_modified: int) -> None:
 
     with tempfile.TemporaryDirectory(dir=output.parent) as directory:
         directory_path = Path(directory)
-        collection_path = directory_path / "collection.anki2"
+        collection_path = directory_path / COLLECTION_FILENAME
         collection_path.write_bytes(
-            next(data for name, data in members if name == "collection.anki2")
+            next(data for name, data in members if name == COLLECTION_FILENAME)
         )
         connection = sqlite3.connect(collection_path)
         connection.execute("UPDATE notes SET mod = ?", (note_modified,))
@@ -56,7 +57,7 @@ def normalize_package(output: Path, *, note_modified: int) -> None:
                 info.external_attr = 0o100600 << 16
                 normalized.writestr(
                     info,
-                    collection if name == "collection.anki2" else data,
+                    collection if name == COLLECTION_FILENAME else data,
                 )
         os.replace(normalized_path, output)
 
