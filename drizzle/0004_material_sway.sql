@@ -51,9 +51,9 @@ CREATE TABLE `native_flashcard_review_events` (
 ) WITHOUT ROWID;
 --> statement-breakpoint
 CREATE INDEX `native_flashcard_review_events_card_time` ON `native_flashcard_review_events` (`owner_id`,`card_id`,`reviewed_at`);--> statement-breakpoint
-CREATE TRIGGER "native_flashcard_review_events_no_update" BEFORE UPDATE ON "native_flashcard_review_events" BEGIN SELECT RAISE(ABORT, 'native flashcard review history cannot be updated'); END;--> statement-breakpoint
-CREATE TRIGGER "native_flashcard_review_events_no_delete" BEFORE DELETE ON "native_flashcard_review_events" WHEN EXISTS (SELECT 1 FROM "native_flashcards" WHERE "id" = "OLD"."card_id" AND "owner_id" = "OLD"."owner_id") BEGIN SELECT RAISE(ABORT, 'native flashcard review history cannot be deleted'); END;--> statement-breakpoint
-CREATE TRIGGER "native_flashcard_review_events_no_replace" BEFORE INSERT ON "native_flashcard_review_events" WHEN EXISTS (SELECT 1 FROM "native_flashcard_review_events" WHERE "owner_id" = "NEW"."owner_id" AND "id" = "NEW"."id") BEGIN SELECT RAISE(ABORT, 'native flashcard review history cannot be replaced'); END;--> statement-breakpoint
+CREATE TRIGGER `native_flashcard_review_events_no_update` BEFORE UPDATE ON `native_flashcard_review_events` BEGIN SELECT RAISE(ABORT, 'native flashcard review history cannot be updated'); END;--> statement-breakpoint
+CREATE TRIGGER `native_flashcard_review_events_no_delete` BEFORE DELETE ON `native_flashcard_review_events` WHEN EXISTS (SELECT 1 FROM `native_flashcards` WHERE `id` = `OLD`.`card_id` AND `owner_id` = `OLD`.`owner_id`) BEGIN SELECT RAISE(ABORT, 'native flashcard review history cannot be deleted'); END;--> statement-breakpoint
+CREATE TRIGGER `native_flashcard_review_events_no_replace` BEFORE INSERT ON `native_flashcard_review_events` WHEN EXISTS (SELECT 1 FROM `native_flashcard_review_events` WHERE `owner_id` = `NEW`.`owner_id` AND `id` = `NEW`.`id`) BEGIN SELECT RAISE(ABORT, 'native flashcard review history cannot be replaced'); END;--> statement-breakpoint
 CREATE TABLE `native_flashcards` (
 	`id` text PRIMARY KEY NOT NULL,
 	`owner_id` text NOT NULL,
