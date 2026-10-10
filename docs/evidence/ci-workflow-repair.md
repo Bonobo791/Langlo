@@ -24,3 +24,13 @@ Validated in disposable worktree `/tmp/langlo-ci-repair`, using Node 24.19.0 and
 - `npm run test:e2e`: 16 passed, desktop/mobile.
 
 Tests used permitted child-process/local-server access and disposable synthetic fixtures. No production, provider or desktop access occurred. Hosted SARIF upload and a fresh GitHub run remain unverified until approved publication. No push, PR creation, merge or deployment was performed.
+
+## Install lifecycle-script findings — 2026-10-10
+
+The three SonarCloud S6505 hotspots correctly identify commands that permit install-time lifecycle scripts by default. Added `--ignore-scripts` to the npm bootstrap, locked project installation and SARIF formatter installation in the ESLint workflow. This change is scoped to the scanner job. Explicit `npm run lint` remains available; see [npm's ignore-scripts documentation](https://docs.npmjs.com/cli/v11/commands/npm-ci/#ignore-scripts).
+
+Validation used Node 24.19.0/npm 11.9.0. A pre-edit command check failed because all three installation commands omitted the flag; the same check passed after editing. A disposable, dependency-free package with a synthetic postinstall marker confirmed that normal installation creates the marker and installation with `--ignore-scripts` does not. Both commands ran offline with audit disabled for this fixture.
+
+Executed the repaired install sequence in the isolated worktree: `npm install --global --prefix /tmp/langlo-ci-npm --cache /tmp/langlo-npm-cache --ignore-scripts npm@11.9.0`, then the installed npm ran `npm ci --ignore-scripts` and `npm install --ignore-scripts --no-save --package-lock=false @microsoft/eslint-formatter-sarif@3.1.0` with the same cache. The disposable npm prefix is the only difference from CI's bootstrap destination. All three passed; audit reported zero findings in this run, while the previously recorded results above remain historical.
+
+`npm run lint -- --format @microsoft/eslint-formatter-sarif --output-file /tmp/langlo-ci-eslint-no-scripts.sarif` passed and generated SARIF 2.1.0 with zero findings. `npm run check` reported zero errors/warnings; `npm run format:check` and `git diff --check` passed. No dependency or lockfile changes occurred. The full unit/browser suite was not repeated for this three-command scanner change; earlier full validation is recorded above. Hosted scan/hotspot acceptance and publication remain pending owner approval.
