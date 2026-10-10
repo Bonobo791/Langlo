@@ -11,3 +11,5 @@ Only disposable local fixture databases may be created or migrated in this phase
 Keep generated .svelte-kit and build files, database files, real .env files and learner data out of git. Server-only modules must stay in src/lib/server. Fork CI must have no production secrets or privileged write triggers.
 
 CI package installations must use `--ignore-scripts`, including the npm bootstrap, `npm ci`, and auxiliary tool installs. Run required validation explicitly after installation. Quality and ESLint workflows must cover pushes and pull requests on every branch without branch filters. Preserve this policy when creating or updating branch workflows.
+
+Accepted T003 export policy: the APKG generator may write synthetic feasibility exports to child directories under the resolved system temporary directory (`/tmp` in this environment). The temporary root itself is rejected. Child directories are allowed intentionally and do not need to be restricted to a dedicated per-run directory. Resolve paths before checking containment, as the current generator does.

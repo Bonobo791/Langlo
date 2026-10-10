@@ -1022,9 +1022,13 @@
       },
       "uniqueConstraints": {},
       "checkConstraints": {
+        "native_flashcard_review_events_reviewed_at": {
+          "name": "native_flashcard_review_events_reviewed_at",
+          "value": "typeof(\"native_flashcard_review_events\".\"reviewed_at\") = 'integer' AND \"native_flashcard_review_events\".\"reviewed_at\" >= 0"
+        },
         "native_flashcard_review_events_revision": {
           "name": "native_flashcard_review_events_revision",
-          "value": "\"native_flashcard_review_events\".\"expected_revision\" >= 0"
+          "value": "typeof(\"native_flashcard_review_events\".\"expected_revision\") = 'integer' AND \"native_flashcard_review_events\".\"expected_revision\" >= 0"
         },
         "native_flashcard_review_events_rating": {
           "name": "native_flashcard_review_events_rating",
