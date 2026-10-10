@@ -71,31 +71,27 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function isCardText(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    !!value.trim() &&
+    !value.includes('\0') &&
+    !exceedsCodePointLimit(value, maxCardTextLength)
+  );
+}
+
 function validateContent(kind: unknown, content: unknown): void {
   if (!isRecord(content)) throw new FlashcardError('INVALID_CONTENT');
 
   if (kind === 'basic') {
     if (
       Object.keys(content).length !== 2 ||
-      typeof content.front !== 'string' ||
-      typeof content.back !== 'string' ||
-      !content.front.trim() ||
-      !content.back.trim() ||
-      content.front.includes('\0') ||
-      content.back.includes('\0') ||
-      exceedsCodePointLimit(content.front, maxCardTextLength) ||
-      exceedsCodePointLimit(content.back, maxCardTextLength)
+      !isCardText(content.front) ||
+      !isCardText(content.back)
     )
       throw new FlashcardError('INVALID_CONTENT');
   } else if (kind === 'cloze') {
-    if (
-      Object.keys(content).length !== 1 ||
-      typeof content.text !== 'string' ||
-      !content.text.trim() ||
-      content.text.includes('\0')
-    )
-      throw new FlashcardError('INVALID_CONTENT');
-    if (exceedsCodePointLimit(content.text, maxCardTextLength))
+    if (Object.keys(content).length !== 1 || !isCardText(content.text))
       throw new FlashcardError('INVALID_CONTENT');
     const matches = content.text.match(/\{\{c1::[^{}]+\}\}/gu) ?? [];
     if (
@@ -171,6 +167,30 @@ function readCardScheduler(
   }
 }
 
+function hasValidCardNumbers(card: Card): boolean {
+  return (
+    [
+      card.stability,
+      card.difficulty,
+      card.elapsed_days,
+      card.scheduled_days,
+      card.learning_steps,
+      card.reps,
+      card.lapses,
+      card.state
+    ].every((value) => isFiniteNumber(value)) &&
+    [card.stability, card.elapsed_days, card.scheduled_days].every(
+      (value) => value >= 0
+    ) &&
+    card.difficulty >= 0 &&
+    card.difficulty <= 10 &&
+    [card.learning_steps, card.reps, card.lapses, card.state].every(
+      (value) => Number.isInteger(value) && value >= 0
+    ) &&
+    card.state <= 3
+  );
+}
+
 function decodeCard(serialized: string): Card {
   let parsed: unknown;
   try {
@@ -187,30 +207,7 @@ function decodeCard(serialized: string): Card {
   const due = new Date(card.due);
   const lastReview = card.last_review ? new Date(card.last_review) : undefined;
   if (
-    ![
-      card.stability,
-      card.difficulty,
-      card.elapsed_days,
-      card.scheduled_days,
-      card.learning_steps,
-      card.reps,
-      card.lapses,
-      card.state
-    ].every((value) => typeof value === 'number' && Number.isFinite(value)) ||
-    card.stability < 0 ||
-    card.difficulty < 0 ||
-    card.difficulty > 10 ||
-    card.elapsed_days < 0 ||
-    card.scheduled_days < 0 ||
-    !Number.isInteger(card.learning_steps) ||
-    card.learning_steps < 0 ||
-    !Number.isInteger(card.reps) ||
-    card.reps < 0 ||
-    !Number.isInteger(card.lapses) ||
-    card.lapses < 0 ||
-    !Number.isInteger(card.state) ||
-    card.state < 0 ||
-    card.state > 3 ||
+    !hasValidCardNumbers(card) ||
     Number.isNaN(due.getTime()) ||
     (card.last_review !== undefined &&
       (typeof card.last_review !== 'string' ||
