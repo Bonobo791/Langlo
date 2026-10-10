@@ -2,7 +2,6 @@ name: Quality
 
 on:
   push:
-    branches: [main, dev]
   pull_request:
 
 permissions:
@@ -24,8 +23,8 @@ jobs:
         with:
           node-version: 24.19.0
           cache: npm
-      - run: npm install --global npm@11.9.0
-      - run: npm ci
+      - run: npm install --global --ignore-scripts npm@11.9.0
+      - run: npm ci --ignore-scripts
       - run: npm run check
       - run: npm run lint
       - run: npm run format:check

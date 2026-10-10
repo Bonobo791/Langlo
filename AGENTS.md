@@ -9,3 +9,5 @@ Write behavior tests first, record observed red and green output, and preserve u
 Only disposable local fixture databases may be created or migrated in this phase. No real provider calls, production database, credentials, account access, paid calls, remote publication, deployment, SSH, DNS or desktop access are authorized. T001 records Bonobo791/Langlo as the repository and PolyForm Shield 1.0.0 as the selected license; license-file implementation and remote publication remain pending. Commits may be made locally; do not push.
 
 Keep generated .svelte-kit and build files, database files, real .env files and learner data out of git. Server-only modules must stay in src/lib/server. Fork CI must have no production secrets or privileged write triggers.
+
+CI package installations must use `--ignore-scripts`, including the npm bootstrap, `npm ci`, and auxiliary tool installs. Run required validation explicitly after installation. Quality and ESLint workflows must cover pushes and pull requests on every branch without branch filters. Preserve this policy when creating or updating branch workflows.
