@@ -543,6 +543,7 @@ export const nativeFlashcardDecks = sqliteTable(
   ]
 );
 
+// Migration 0004 guards restricted Cloze syntax on INSERT/UPDATE; preserve these triggers in rebuilds.
 export const nativeFlashcardNotes = sqliteTable(
   'native_flashcard_notes',
   {
@@ -686,8 +687,12 @@ export const nativeFlashcardReviewEvents = sqliteTable(
       table.reviewedAt
     ),
     check(
+      'native_flashcard_review_events_reviewed_at',
+      sql`typeof(${table.reviewedAt}) = 'integer' AND ${table.reviewedAt} >= 0`
+    ),
+    check(
       'native_flashcard_review_events_revision',
-      sql`${table.expectedRevision} >= 0`
+      sql`typeof(${table.expectedRevision}) = 'integer' AND ${table.expectedRevision} >= 0`
     ),
     check(
       'native_flashcard_review_events_id_nonempty',
