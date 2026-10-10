@@ -15,6 +15,29 @@ const createdAt = () =>
     .notNull()
     .default(sql`(unixepoch() * 1000)`);
 
+// Match String.prototype.trim() for text fields enforced in application code.
+const flashcardTrimWhitespace = sql.raw(
+  [
+    9,
+    10,
+    11,
+    12,
+    13,
+    32,
+    160,
+    5760,
+    ...Array.from({ length: 11 }, (_, i) => 8192 + i),
+    8232,
+    8233,
+    8239,
+    8287,
+    12288,
+    65279
+  ]
+    .map((codePoint) => `char(${codePoint})`)
+    .join(' || ')
+);
+
 // Migration 0003 rejects whitespace-only/NUL identity text in user IDs, skill IDs and
 // canonical mistakes. Keep its hand-authored triggers during future table rebuilds.
 // Identity only. T010 selects and adds maintained auth-library tables and fields.
@@ -493,6 +516,194 @@ export const deliveries = sqliteTable(
     check(
       'deliveries_acknowledgement',
       sql`(${table.state} = 'delivered' AND ${table.noteId} IS NOT NULL AND length(trim(${table.noteId})) > 0 AND ${table.deliveredAt} IS NOT NULL) OR (${table.state} <> 'delivered' AND ${table.noteId} IS NULL AND ${table.deliveredAt} IS NULL)`
+    )
+  ]
+);
+
+export const nativeFlashcardDecks = sqliteTable(
+  'native_flashcard_decks',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    createdAt: createdAt()
+  },
+  (table) => [
+    uniqueIndex('native_flashcard_decks_id_owner_unique').on(
+      table.id,
+      table.ownerId
+    ),
+    index('native_flashcard_decks_owner').on(table.ownerId),
+    check(
+      'native_flashcard_decks_name_nonempty',
+      sql`length(trim(${table.name}, ${flashcardTrimWhitespace})) BETWEEN 1 AND 160 AND length(${table.name}) <= 160 AND instr(${table.name}, char(0)) = 0`
+    )
+  ]
+);
+
+export const nativeFlashcardNotes = sqliteTable(
+  'native_flashcard_notes',
+  {
+    id: text('id').primaryKey(),
+    sourceId: text('source_id').notNull(),
+    ownerId: text('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    deckId: text('deck_id').notNull(),
+    kind: text('kind', { enum: ['basic', 'cloze'] }).notNull(),
+    contentJson: text('content_json').notNull(),
+    status: text('status', { enum: ['draft', 'approved', 'rejected'] })
+      .notNull()
+      .default('draft'),
+    createdAt: createdAt()
+  },
+  (table) => [
+    uniqueIndex('native_flashcard_notes_id_owner_unique').on(
+      table.id,
+      table.ownerId
+    ),
+    uniqueIndex('native_flashcard_notes_source_owner_unique').on(
+      table.ownerId,
+      table.sourceId
+    ),
+    foreignKey({
+      columns: [table.deckId, table.ownerId],
+      foreignColumns: [nativeFlashcardDecks.id, nativeFlashcardDecks.ownerId]
+    }).onDelete('cascade'),
+    index('native_flashcard_notes_owner_deck').on(table.ownerId, table.deckId),
+    check(
+      'native_flashcard_notes_kind',
+      sql`${table.kind} IN ('basic', 'cloze')`
+    ),
+    check(
+      'native_flashcard_notes_status',
+      sql`${table.status} IN ('draft', 'approved', 'rejected')`
+    ),
+    check(
+      'native_flashcard_notes_content_json',
+      sql`json_valid(${table.contentJson})`
+    ),
+    check(
+      'native_flashcard_notes_source_id',
+      sql`length(${table.sourceId}) = 74 AND instr(${table.sourceId}, char(0)) = 0 AND ${table.sourceId} GLOB 'langlo:v1:*' AND substr(${table.sourceId}, 11) NOT GLOB '*[^0-9a-f]*'`
+    ),
+    check(
+      'native_flashcard_notes_content_shape',
+      sql`(${table.kind} = 'basic' AND json_type(${table.contentJson}) = 'object' AND json_type(${table.contentJson}, '$.front') = 'text' AND json_type(${table.contentJson}, '$.back') = 'text' AND instr(json_extract(${table.contentJson}, '$.front'), char(0)) = 0 AND length(trim(json_extract(${table.contentJson}, '$.front'), ${flashcardTrimWhitespace})) BETWEEN 1 AND 4096 AND length(json_extract(${table.contentJson}, '$.front')) <= 4096 AND instr(json_extract(${table.contentJson}, '$.back'), char(0)) = 0 AND length(trim(json_extract(${table.contentJson}, '$.back'), ${flashcardTrimWhitespace})) BETWEEN 1 AND 4096 AND length(json_extract(${table.contentJson}, '$.back')) <= 4096 AND json_remove(${table.contentJson}, '$.front', '$.back') = '{}') OR (${table.kind} = 'cloze' AND json_type(${table.contentJson}) = 'object' AND json_type(${table.contentJson}, '$.text') = 'text' AND instr(json_extract(${table.contentJson}, '$.text'), char(0)) = 0 AND length(trim(json_extract(${table.contentJson}, '$.text'), ${flashcardTrimWhitespace})) BETWEEN 1 AND 4096 AND length(json_extract(${table.contentJson}, '$.text')) <= 4096 AND json_remove(${table.contentJson}, '$.text') = '{}')`
+    )
+  ]
+);
+
+export const nativeFlashcards = sqliteTable(
+  'native_flashcards',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id').notNull(),
+    noteId: text('note_id').notNull(),
+    ordinal: integer('ordinal').notNull().default(0),
+    stateJson: text('state_json').notNull(),
+    dueAt: integer('due_at').notNull(),
+    revision: integer('revision').notNull().default(0),
+    suspended: integer('suspended', { mode: 'boolean' })
+      .notNull()
+      .default(false),
+    schedulerVersion: text('scheduler_version').notNull(),
+    parametersJson: text('parameters_json').notNull()
+  },
+  (table) => [
+    uniqueIndex('native_flashcards_id_owner_unique').on(
+      table.id,
+      table.ownerId
+    ),
+    uniqueIndex('native_flashcards_note_ordinal_unique').on(
+      table.ownerId,
+      table.noteId,
+      table.ordinal
+    ),
+    foreignKey({
+      columns: [table.noteId, table.ownerId],
+      foreignColumns: [nativeFlashcardNotes.id, nativeFlashcardNotes.ownerId]
+    }).onDelete('cascade'),
+    index('native_flashcards_owner_due').on(
+      table.ownerId,
+      table.suspended,
+      table.dueAt
+    ),
+    check(
+      'native_flashcards_ordinal',
+      sql`typeof(${table.ordinal}) = 'integer' AND ${table.ordinal} >= 0`
+    ),
+    check(
+      'native_flashcards_due_at',
+      sql`typeof(${table.dueAt}) = 'integer' AND ${table.dueAt} >= 0`
+    ),
+    check(
+      'native_flashcards_revision',
+      sql`typeof(${table.revision}) = 'integer' AND ${table.revision} >= 0`
+    ),
+    check(
+      'native_flashcards_suspended',
+      sql`typeof(${table.suspended}) = 'integer' AND ${table.suspended} IN (0, 1)`
+    ),
+    check('native_flashcards_state_json', sql`json_valid(${table.stateJson})`),
+    check(
+      'native_flashcards_parameters_json',
+      sql`json_valid(${table.parametersJson})`
+    )
+  ]
+);
+
+// Migration 0004 uses WITHOUT ROWID (not expressible by this Drizzle builder)
+// and adds hand-authored UPDATE/DELETE and duplicate-INSERT guards. Preserve the
+// table option and all three triggers in rebuilds; DELETE is permitted only after
+// the parent card has been removed by the intentional owner-data cascade.
+export const nativeFlashcardReviewEvents = sqliteTable(
+  'native_flashcard_review_events',
+  {
+    id: text('id').notNull(),
+    ownerId: text('owner_id').notNull(),
+    cardId: text('card_id').notNull(),
+    expectedRevision: integer('expected_revision').notNull(),
+    rating: text('rating', {
+      enum: ['again', 'hard', 'good', 'easy']
+    }).notNull(),
+    reviewedAt: integer('reviewed_at').notNull(),
+    schedulerVersion: text('scheduler_version').notNull(),
+    parametersJson: text('parameters_json').notNull(),
+    resultJson: text('result_json').notNull()
+  },
+  (table) => [
+    primaryKey({ columns: [table.ownerId, table.id] }),
+    foreignKey({
+      columns: [table.cardId, table.ownerId],
+      foreignColumns: [nativeFlashcards.id, nativeFlashcards.ownerId]
+    }).onDelete('cascade'),
+    index('native_flashcard_review_events_card_time').on(
+      table.ownerId,
+      table.cardId,
+      table.reviewedAt
+    ),
+    check(
+      'native_flashcard_review_events_revision',
+      sql`${table.expectedRevision} >= 0`
+    ),
+    check(
+      'native_flashcard_review_events_id_nonempty',
+      sql`length(trim(${table.id}, ${flashcardTrimWhitespace})) BETWEEN 1 AND 256 AND length(${table.id}) <= 256`
+    ),
+    check(
+      'native_flashcard_review_events_rating',
+      sql`${table.rating} IN ('again', 'hard', 'good', 'easy')`
+    ),
+    check(
+      'native_flashcard_review_events_parameters_json',
+      sql`json_valid(${table.parametersJson})`
+    ),
+    check(
+      'native_flashcard_review_events_result_json',
+      sql`json_valid(${table.resultJson})`
     )
   ]
 );

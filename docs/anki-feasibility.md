@@ -1,4 +1,6 @@
-# Anki integration feasibility
+# Historical Anki integration feasibility — superseded architecture
+
+> **Superseded for the core product.** This document preserves the earlier Windows/AnkiConnect and mock-delivery research as historical evidence. The current architecture is Langlo-owned flashcards with optional one-way Anki export, described in [Native flashcards architecture](flashcard-architecture.md). The Windows connector, hosted AnkiConnect delivery, and cloud-sync requirements below are not current T003 requirements.
 
 **Checked:** 2026-10-09
 

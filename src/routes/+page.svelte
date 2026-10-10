@@ -13,7 +13,7 @@
   </ul>
   <p class="status">
     The local foundation is running. Accounts, prepared lessons, assessment and
-    Windows Anki delivery are still being built.
+    native flashcard study are still being built.
   </p>
 </section>
 
