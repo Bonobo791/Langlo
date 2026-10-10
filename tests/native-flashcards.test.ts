@@ -322,6 +322,51 @@ describe('native flashcard persistence feasibility', () => {
     }
   });
 
+  it('rejects non-integer or out-of-range scheduling fields from direct SQL writers', async () => {
+    const target = await fixture();
+    const learner = testSession('learner-a');
+    const db = await openFixtureDatabase(target);
+    try {
+      await createDeck(db.client, learner, {
+        id: 'deck-10000000-0000-4000-8000-000000000025',
+        name: 'French'
+      });
+      const note = await createNote(db.client, learner, {
+        id: 'note-10000000-0000-4000-8000-000000000025',
+        sourceId: testSourceId('10000000-0000-4000-8000-000000000025'),
+        deckId: 'deck-10000000-0000-4000-8000-000000000025',
+        kind: 'basic',
+        content: { front: 'Bonjour', back: 'Hello' }
+      });
+      await approveNote(db.client, learner, note.id);
+
+      for (const [column, value] of [
+        ['ordinal', 0.5],
+        ['due_at', 'abc'],
+        ['due_at', -1],
+        ['revision', 'abc'],
+        ['revision', 0.5],
+        ['suspended', 'false'],
+        ['suspended', 2]
+      ]) {
+        await expect(
+          db.client.execute(
+            `UPDATE native_flashcards SET ${column} = ? WHERE id = ? AND owner_id = ?`,
+            [value, note.cardId, learner.userId]
+          )
+        ).rejects.toThrow(/CHECK|CONSTRAINT/iu);
+      }
+
+      await expect(getNote(db.client, learner, note.id)).resolves.toMatchObject(
+        {
+          card: { revision: 0, suspended: false }
+        }
+      );
+    } finally {
+      db.close();
+    }
+  });
+
   it('rejects another learner review attempts without changing the owner’s card or grammar evidence', async () => {
     const target = await fixture();
     const ownerA = testSession('learner-a');

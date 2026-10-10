@@ -66,8 +66,10 @@ CREATE TABLE `native_flashcards` (
 	`scheduler_version` text NOT NULL,
 	`parameters_json` text NOT NULL,
 	FOREIGN KEY (`note_id`,`owner_id`) REFERENCES `native_flashcard_notes`(`id`,`owner_id`) ON UPDATE no action ON DELETE cascade,
-	CONSTRAINT "native_flashcards_ordinal" CHECK("native_flashcards"."ordinal" >= 0),
-	CONSTRAINT "native_flashcards_revision" CHECK("native_flashcards"."revision" >= 0),
+	CONSTRAINT "native_flashcards_ordinal" CHECK(typeof("native_flashcards"."ordinal") = 'integer' AND "native_flashcards"."ordinal" >= 0),
+	CONSTRAINT "native_flashcards_due_at" CHECK(typeof("native_flashcards"."due_at") = 'integer' AND "native_flashcards"."due_at" >= 0),
+	CONSTRAINT "native_flashcards_revision" CHECK(typeof("native_flashcards"."revision") = 'integer' AND "native_flashcards"."revision" >= 0),
+	CONSTRAINT "native_flashcards_suspended" CHECK(typeof("native_flashcards"."suspended") = 'integer' AND "native_flashcards"."suspended" IN (0, 1)),
 	CONSTRAINT "native_flashcards_state_json" CHECK(json_valid("native_flashcards"."state_json")),
 	CONSTRAINT "native_flashcards_parameters_json" CHECK(json_valid("native_flashcards"."parameters_json"))
 );

@@ -631,8 +631,22 @@ export const nativeFlashcards = sqliteTable(
       table.suspended,
       table.dueAt
     ),
-    check('native_flashcards_ordinal', sql`${table.ordinal} >= 0`),
-    check('native_flashcards_revision', sql`${table.revision} >= 0`),
+    check(
+      'native_flashcards_ordinal',
+      sql`typeof(${table.ordinal}) = 'integer' AND ${table.ordinal} >= 0`
+    ),
+    check(
+      'native_flashcards_due_at',
+      sql`typeof(${table.dueAt}) = 'integer' AND ${table.dueAt} >= 0`
+    ),
+    check(
+      'native_flashcards_revision',
+      sql`typeof(${table.revision}) = 'integer' AND ${table.revision} >= 0`
+    ),
+    check(
+      'native_flashcards_suspended',
+      sql`typeof(${table.suspended}) = 'integer' AND ${table.suspended} IN (0, 1)`
+    ),
     check('native_flashcards_state_json', sql`json_valid(${table.stateJson})`),
     check(
       'native_flashcards_parameters_json',

@@ -1154,11 +1154,19 @@
       "checkConstraints": {
         "native_flashcards_ordinal": {
           "name": "native_flashcards_ordinal",
-          "value": "\"native_flashcards\".\"ordinal\" >= 0"
+          "value": "typeof(\"native_flashcards\".\"ordinal\") = 'integer' AND \"native_flashcards\".\"ordinal\" >= 0"
+        },
+        "native_flashcards_due_at": {
+          "name": "native_flashcards_due_at",
+          "value": "typeof(\"native_flashcards\".\"due_at\") = 'integer' AND \"native_flashcards\".\"due_at\" >= 0"
         },
         "native_flashcards_revision": {
           "name": "native_flashcards_revision",
-          "value": "\"native_flashcards\".\"revision\" >= 0"
+          "value": "typeof(\"native_flashcards\".\"revision\") = 'integer' AND \"native_flashcards\".\"revision\" >= 0"
+        },
+        "native_flashcards_suspended": {
+          "name": "native_flashcards_suspended",
+          "value": "typeof(\"native_flashcards\".\"suspended\") = 'integer' AND \"native_flashcards\".\"suspended\" IN (0, 1)"
         },
         "native_flashcards_state_json": {
           "name": "native_flashcards_state_json",
