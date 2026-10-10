@@ -18,6 +18,8 @@ CLOZE_NOTE_ID = "note-10000000-0000-4000-8000-000000000004"
 PACKAGE_TIMESTAMP = 1_791_624_000
 ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
 COLLECTION_FILENAME = "collection.anki2"
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+ARTIFACT_OUTPUT_ROOT = REPOSITORY_ROOT / "docs/evidence/artifacts/T003"
 
 
 def stable_number(source_identity: str) -> int:
@@ -101,10 +103,22 @@ def build(output: Path, *, edited: bool = False, renamed: bool = False) -> None:
     normalize_package(output, note_modified=note_modified)
 
 
+def resolve_output_directory(argument: str) -> Path:
+    output_dir = Path(argument).resolve()
+    allowed_roots = (ARTIFACT_OUTPUT_ROOT.resolve(), Path(tempfile.gettempdir()).resolve())
+    for root in allowed_roots:
+        try:
+            output_dir.relative_to(root)
+            return output_dir
+        except ValueError:
+            pass
+    raise SystemExit("OUTPUT_DIRECTORY is outside the allowed roots")
+
+
 def main() -> None:
     if len(sys.argv) != 2:
         raise SystemExit("usage: t003-generate-apkg.py OUTPUT_DIRECTORY")
-    output_dir = Path(sys.argv[1])
+    output_dir = resolve_output_directory(sys.argv[1])
     output_dir.mkdir(parents=True, exist_ok=True)
     build(output_dir / "T003-initial.apkg")
     build(output_dir / "T003-unchanged-reexport.apkg")

@@ -167,11 +167,17 @@ describe('native flashcard persistence feasibility', () => {
         })
       ).rejects.toMatchObject({ code: 'STALE_REVIEW' });
       await expect(
+        db.client.execute({
+          sql: 'UPDATE native_flashcard_review_events SET rating = ? WHERE owner_id = ? AND id = ?',
+          args: ['again', learner.userId, review.submissionId]
+        })
+      ).rejects.toThrow(/cannot be updated/i);
+      await expect(
         db.client.execute(
           'DELETE FROM native_flashcard_review_events WHERE owner_id = ? AND id = ?',
           [learner.userId, review.submissionId]
         )
-      ).rejects.toThrow(/append-only/i);
+      ).rejects.toThrow(/cannot be deleted/i);
       await db.client.execute('PRAGMA recursive_triggers = OFF');
       await expect(
         db.client.execute({
@@ -188,7 +194,7 @@ describe('native flashcard persistence feasibility', () => {
             '{}'
           ]
         })
-      ).rejects.toThrow(/append-only/i);
+      ).rejects.toThrow(/cannot be replaced/i);
       await expect(
         db.client.execute({
           sql: 'INSERT OR REPLACE INTO native_flashcard_review_events (rowid, id, owner_id, card_id, expected_revision, rating, reviewed_at, scheduler_version, parameters_json, result_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
