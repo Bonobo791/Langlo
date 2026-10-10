@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,7 +13,8 @@ import {
   validateGraph,
   validateIdRegistry,
   validateIdRegistryShape,
-  validateManifest
+  validateManifest,
+  validatePublicationStatus
 } from '../scripts/curriculum-contract.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -83,6 +85,9 @@ describe('versioned curriculum bundle contract', () => {
       validateManifest({ ...manifest, publication_status: 'released' }, files)
     ).toThrow();
     expect(() =>
+      validateManifest({ ...manifest, curriculum_version: '1.0.0' }, files)
+    ).toThrow(/draft version must be a pre-release/u);
+    expect(() =>
       validateManifest({ ...manifest, curriculum_version: 'draft' }, files)
     ).toThrow();
     expect(() =>
@@ -102,10 +107,24 @@ describe('versioned curriculum bundle contract', () => {
     ).not.toThrow();
     expect(() =>
       validateManifest(
-        { ...manifest, curriculum_version: '0.1.0+build.01' },
+        {
+          ...manifest,
+          curriculum_version: '0.1.0+build.01',
+          publication_status: 'approved'
+        },
         files
       )
     ).not.toThrow();
+    expect(() =>
+      validateManifest(
+        {
+          ...manifest,
+          curriculum_version: '0.1.0-draft.1',
+          publication_status: 'approved'
+        },
+        files
+      )
+    ).toThrow(/approved version must be stable/u);
     expect(() =>
       validateManifest({ ...manifest, curriculum_version: '01.1.0' }, files)
     ).toThrow(/Invalid curriculum version/u);
@@ -118,6 +137,19 @@ describe('versioned curriculum bundle contract', () => {
     expect(() =>
       validateManifest({ ...manifest, coverage_sha256: '0'.repeat(64) }, files)
     ).toThrow();
+    expect(() =>
+      validateManifest({ ...manifest, coverage_file: '../outside.csv' }, files)
+    ).toThrow(/Invalid manifest path/u);
+  });
+
+  it('rejects arbitrary CLI file paths before reading files', () => {
+    const result = spawnSync(
+      process.execPath,
+      [resolve(root, 'scripts/curriculum-contract.mjs'), '../outside.json'],
+      { cwd: root, encoding: 'utf8' }
+    );
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('CLI file paths are not accepted.');
   });
 
   it('parses valid quoted CSV and rejects malformed quote placement', () => {
@@ -242,6 +274,19 @@ describe('versioned curriculum bundle contract', () => {
     expect(() =>
       validateIdRegistry(registry, catalog, ['previously-used-id'])
     ).toThrow(/Previously registered ID was removed/u);
+  });
+
+  it('blocks approval while an active skill has provisional evidence', () => {
+    expect(() =>
+      validatePublicationStatus(
+        {
+          ...manifest,
+          curriculum_version: '1.0.0',
+          publication_status: 'approved'
+        },
+        catalog
+      )
+    ).toThrow(/provisional skill/u);
   });
 
   it('validates same-language, level-ordered, acyclic graph structure without pinning lesson choices', () => {

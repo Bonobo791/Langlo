@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { log } from 'node:console';
-import { readFileSync, realpathSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { isAbsolute, relative, resolve, sep, win32 } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
@@ -38,6 +38,7 @@ const allowedEvidence = new Set([
   'local-alignment',
   'provisional'
 ]);
+const priorRegistryFile = '.t004-prior-registry.json';
 /** @param {string} value */
 function isSemver(value) {
   const buildIndex = value.indexOf('+');
@@ -63,7 +64,7 @@ function isSemver(value) {
 function isCoreNumber(value) {
   return (
     value.length > 0 &&
-    (value === '0' || value[0] !== '0') &&
+    (value === '0' || !value.startsWith('0')) &&
     [...value].every((char) => char >= '0' && char <= '9')
   );
 }
@@ -79,7 +80,7 @@ function validIdentifiers(value, disallowLeadingZero) {
         (!disallowLeadingZero ||
           !isNumericIdentifier(identifier) ||
           identifier.length === 1 ||
-          identifier[0] !== '0')
+          !identifier.startsWith('0'))
     );
 }
 
@@ -256,18 +257,26 @@ function readRepositoryFile(root, path) {
 
 /** @param {Manifest} manifest @param {Map<string, string>} files */
 function validateManifestFiles(manifest, files) {
-  for (const [path, expectedDigest] of [
-    [manifest.coverage_file, manifest.coverage_sha256],
-    [manifest.prerequisites_file, manifest.prerequisites_sha256],
-    [manifest.id_registry_file, manifest.id_registry_sha256]
+  for (const [path, declaredPath, expectedDigest] of [
+    [
+      'docs/curriculum-coverage.csv',
+      manifest.coverage_file,
+      manifest.coverage_sha256
+    ],
+    [
+      'content/prerequisites.json',
+      manifest.prerequisites_file,
+      manifest.prerequisites_sha256
+    ],
+    [
+      'content/curriculum-id-registry.json',
+      manifest.id_registry_file,
+      manifest.id_registry_sha256
+    ]
   ]) {
     requireCondition(
-      typeof path === 'string' &&
-        path.length > 0 &&
-        !isAbsolute(path) &&
-        !win32.parse(path).root &&
-        !path.split(/[\\/]/u).includes('..'),
-      `Invalid manifest path: ${path}.`
+      declaredPath === path,
+      `Invalid manifest path: ${declaredPath}.`
     );
     const content = files.get(path);
     requireCondition(
@@ -299,6 +308,15 @@ export function validateManifest(manifest, files) {
   requireCondition(
     ['draft', 'approved'].includes(manifest.publication_status),
     'Invalid publication status.'
+  );
+  const prerelease = manifest.curriculum_version.split('+', 1)[0].includes('-');
+  requireCondition(
+    manifest.publication_status !== 'draft' || prerelease,
+    'A draft version must be a pre-release.'
+  );
+  requireCondition(
+    manifest.publication_status !== 'approved' || !prerelease,
+    'An approved version must be stable.'
   );
   requireCondition(
     manifest.dependency_semantics === 'recommended_teaching_order',
@@ -462,6 +480,15 @@ export function validateIdRegistry(registry, catalog, previousIds = []) {
     );
 }
 
+/** @param {Manifest} manifest @param {Catalog} catalog */
+export function validatePublicationStatus(manifest, catalog) {
+  if (manifest.publication_status !== 'approved') return;
+  requireCondition(
+    [...catalog.values()].every((row) => row[7] !== 'provisional'),
+    'An approved bundle cannot contain a provisional skill.'
+  );
+}
+
 /** @param {Graph} graph @param {Catalog} catalog @returns {Map<string, string[]>} */
 function indexGraph(graph, catalog) {
   requireCondition(
@@ -549,15 +576,22 @@ export function validateGraph(graph, catalog) {
   return [...nodes.values()].reduce((total, ids) => total + ids.length, 0);
 }
 
-/** @param {string} root @param {Manifest} manifest @returns {Map<string, string>} */
-function readBundleFiles(root, manifest) {
-  return new Map(
+/** @param {string} root @returns {Map<string, string>} */
+function readBundleFiles(root) {
+  return new Map([
     [
-      manifest.coverage_file,
-      manifest.prerequisites_file,
-      manifest.id_registry_file
-    ].map((path) => [path, readRepositoryFile(root, path)])
-  );
+      'docs/curriculum-coverage.csv',
+      readRepositoryFile(root, 'docs/curriculum-coverage.csv')
+    ],
+    [
+      'content/prerequisites.json',
+      readRepositoryFile(root, 'content/prerequisites.json')
+    ],
+    [
+      'content/curriculum-id-registry.json',
+      readRepositoryFile(root, 'content/curriculum-id-registry.json')
+    ]
+  ]);
 }
 
 /** @param {string} root @returns {Set<string>} */
@@ -575,13 +609,14 @@ export function validateBundle(root, previousIds = []) {
   const manifest = JSON.parse(
     readRepositoryFile(root, 'content/curriculum-manifest.json')
   );
-  const files = readBundleFiles(root, manifest);
+  const files = readBundleFiles(root);
   validateManifest(manifest, files);
   const knownSources = readKnownSources(root);
   const registry = JSON.parse(files.get(manifest.id_registry_file));
   const records = parseCsv(files.get(manifest.coverage_file));
   const catalog = validateCatalog(records, knownSources, new Set(registry.ids));
   validateIdRegistry(registry, catalog, previousIds);
+  validatePublicationStatus(manifest, catalog);
   const graph = JSON.parse(files.get(manifest.prerequisites_file));
   const edges = validateGraph(graph, catalog);
   return { manifest, records, catalog, registry, graph, edges };
@@ -592,19 +627,26 @@ if (
   fileURLToPath(import.meta.url) === resolve(process.argv[1])
 ) {
   const root = process.cwd();
-  const previousRegistryPath = process.argv[2];
-  const previousIds = previousRegistryPath
+  requireCondition(
+    process.argv.length === 2,
+    'CLI file paths are not accepted.'
+  );
+  const previousRegistryPath = resolve(root, priorRegistryFile);
+  const hasPreviousRegistry = existsSync(previousRegistryPath);
+  const previousIds = hasPreviousRegistry
     ? validateIdRegistryShape(
-        JSON.parse(readRepositoryFile(root, previousRegistryPath))
+        JSON.parse(readRepositoryFile(root, priorRegistryFile))
       )
     : [];
   const { records, edges, manifest } = validateBundle(root, previousIds);
   log(
     `PASS: ${records.length - 1} curriculum records; ${edges} edges; ${manifest.publication_status} bundle ${manifest.curriculum_version}.`
   );
-  if (!previousRegistryPath) {
+  if (hasPreviousRegistry) {
+    log(`Compared ${previousIds.length} IDs with the prior registry snapshot.`);
+  } else {
     log(
-      'ID reuse across versions requires comparison with the previous registry before approval.'
+      'No previous registry snapshot found; this bundle starts the registry history.'
     );
   }
 }

@@ -38,6 +38,10 @@ export function validateIdRegistry(
   previousIds?: string[]
 ): void;
 export function validateIdRegistryShape(value: unknown): string[];
+export function validatePublicationStatus(
+  manifest: Manifest,
+  catalog: Catalog
+): void;
 export function validateGraph(graph: Graph, catalog: Catalog): number;
 export function validateBundle(
   root: string,
