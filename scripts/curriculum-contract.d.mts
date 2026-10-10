@@ -26,6 +26,7 @@ export function validateManifest(
   manifest: Manifest,
   files: Record<string, string>
 ): void;
+export function resolveRepositoryPath(root: string, path: string): string;
 export function validateCatalog(
   records: CsvRow[],
   knownSources: Set<string>,
@@ -36,6 +37,7 @@ export function validateIdRegistry(
   catalog: Catalog,
   previousIds?: string[]
 ): void;
+export function validateIdRegistryShape(value: unknown): string[];
 export function validateGraph(graph: Graph, catalog: Catalog): number;
 export function validateBundle(
   root: string,

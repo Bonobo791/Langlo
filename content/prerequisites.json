@@ -443,7 +443,7 @@
     },
     {
       "skill_id": "en-a2-010",
-      "prerequisites": ["en-a1-003", "en-a1-022", "en-a1-016"]
+      "prerequisites": ["en-a1-003", "en-a1-022"]
     },
     {
       "skill_id": "en-a2-011",
@@ -495,7 +495,7 @@
     },
     {
       "skill_id": "en-a2-023",
-      "prerequisites": ["en-a1-003", "en-a1-022"]
+      "prerequisites": ["en-a1-003", "en-a1-022", "en-a1-016"]
     },
     {
       "skill_id": "en-a1-024",

@@ -1,10 +1,13 @@
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { log } from 'node:console';
+import { readFileSync, realpathSync } from 'node:fs';
+import { isAbsolute, relative, resolve, sep } from 'node:path';
+import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 /** @typedef {string[]} CsvRow */
 /** @typedef {Map<string, CsvRow>} Catalog */
+/** @typedef {{ rows: CsvRow[], row: CsvRow, field: string, quoted: boolean, afterQuote: boolean, atFieldStart: boolean }} CsvState */
 /** @typedef {{ manifest_version: number, curriculum_version: string, publication_status: string, coverage_file: string, coverage_sha256: string, prerequisites_file: string, prerequisites_sha256: string, id_registry_file: string, id_registry_sha256: string, dependency_semantics: string, included_tracks: string[], selected_subset_tracks: string[] }} Manifest */
 /** @typedef {{ schema_version: number, ids: string[] }} IdRegistry */
 /** @typedef {{ schema_version: number, nodes: { skill_id: string, prerequisites: string[] }[] }} Graph */
@@ -32,74 +35,130 @@ const tracks = [
 ];
 const allowedEvidence = ['source-aligned', 'local-alignment', 'provisional'];
 const semver =
-  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/u;
+  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z.-]+))?(?:\+([0-9A-Za-z.-]+))?$/u;
+
+/** @param {string} value */
+function isSemver(value) {
+  const match = semver.exec(value);
+  return Boolean(
+    match &&
+    (!match[4] ||
+      match[4]
+        .split('.')
+        .every(
+          (identifier) => identifier.length > 0 && !/^0\d+$/u.test(identifier)
+        )) &&
+    (!match[5] || match[5].split('.').every(Boolean))
+  );
+}
+
+/** @param {CsvState} state */
+function finishField(state) {
+  state.row.push(state.field);
+  state.field = '';
+  state.afterQuote = false;
+  state.atFieldStart = true;
+}
+
+/** @param {CsvState} state @param {boolean} keepEmpty */
+function finishRow(state, keepEmpty) {
+  state.row.push(state.field);
+  if (keepEmpty || state.row.some((value) => value !== ''))
+    state.rows.push(state.row);
+  state.row = [];
+  state.field = '';
+  state.afterQuote = false;
+  state.atFieldStart = true;
+}
+
+/** @param {string} char */
+function isLineBreak(char) {
+  return char === '\n' || char === '\r';
+}
+
+/** @param {CsvState} state @param {string} char @param {string | undefined} next @param {boolean} keepEmpty */
+function consumeLineBreak(state, char, next, keepEmpty) {
+  finishRow(state, keepEmpty);
+  return char === '\r' && next === '\n';
+}
+
+/** @param {CsvState} state @param {string} char @param {string | undefined} next */
+function consumeQuoted(state, char, next) {
+  if (char === '"' && next === '"') {
+    state.field += '"';
+    return true;
+  }
+  if (char === '"') {
+    state.quoted = false;
+    state.afterQuote = true;
+  } else {
+    state.field += char;
+  }
+  return false;
+}
+
+/** @param {CsvState} state @param {string} char @param {string | undefined} next */
+function consumeAfterQuote(state, char, next) {
+  if (char === ',') {
+    finishField(state);
+    return false;
+  }
+  if (isLineBreak(char)) return consumeLineBreak(state, char, next, true);
+  throw new Error('Unexpected character after a quoted CSV field.');
+}
+
+/** @param {CsvState} state @param {string} char @param {string | undefined} next */
+function consumeUnquoted(state, char, next) {
+  if (char === '"') {
+    if (!state.atFieldStart)
+      throw new Error('Unexpected quote inside an unquoted CSV field.');
+    state.quoted = true;
+    state.atFieldStart = false;
+  } else if (char === ',') {
+    finishField(state);
+  } else if (isLineBreak(char)) {
+    return consumeLineBreak(state, char, next, false);
+  } else {
+    state.field += char;
+    state.atFieldStart = false;
+  }
+  return false;
+}
+
+/** @param {CsvState} state @param {string} char @param {string | undefined} next */
+function consumeCsvCharacter(state, char, next) {
+  if (state.quoted) return consumeQuoted(state, char, next);
+  if (state.afterQuote) return consumeAfterQuote(state, char, next);
+  return consumeUnquoted(state, char, next);
+}
+
+/** @param {CsvState} state @returns {CsvRow[]} */
+function finishCsv(state) {
+  if (state.quoted) throw new Error('Unclosed quoted CSV field.');
+  if (state.field !== '' || state.row.length > 0 || state.afterQuote) {
+    state.row.push(state.field);
+    state.rows.push(state.row);
+  }
+  return state.rows;
+}
 
 /** @param {string} input @returns {CsvRow[]} */
 export function parseCsv(input) {
-  const rows = [];
-  let row = [];
-  let field = '';
-  let quoted = false;
-  let afterQuote = false;
-  let atFieldStart = true;
-
-  for (let index = 0; index < input.length; index += 1) {
-    const char = input[index];
-    if (quoted) {
-      if (char === '"' && input[index + 1] === '"') {
-        field += '"';
-        index += 1;
-      } else if (char === '"') {
-        quoted = false;
-        afterQuote = true;
-      } else {
-        field += char;
-      }
-    } else if (afterQuote) {
-      if (char === ',') {
-        row.push(field);
-        field = '';
-        afterQuote = false;
-        atFieldStart = true;
-      } else if (char === '\n' || char === '\r') {
-        row.push(field);
-        rows.push(row);
-        row = [];
-        field = '';
-        afterQuote = false;
-        atFieldStart = true;
-        if (char === '\r' && input[index + 1] === '\n') index += 1;
-      } else {
-        throw new Error('Unexpected character after a quoted CSV field.');
-      }
-    } else if (char === '"') {
-      if (!atFieldStart)
-        throw new Error('Unexpected quote inside an unquoted CSV field.');
-      quoted = true;
-      atFieldStart = false;
-    } else if (char === ',') {
-      row.push(field);
-      field = '';
-      atFieldStart = true;
-    } else if (char === '\n' || char === '\r') {
-      row.push(field);
-      if (row.some((value) => value !== '')) rows.push(row);
-      row = [];
-      field = '';
-      atFieldStart = true;
-      if (char === '\r' && input[index + 1] === '\n') index += 1;
-    } else {
-      field += char;
-      atFieldStart = false;
-    }
+  /** @type {CsvState} */
+  const state = {
+    rows: [],
+    row: [],
+    field: '',
+    quoted: false,
+    afterQuote: false,
+    atFieldStart: true
+  };
+  let index = 0;
+  while (index < input.length) {
+    const skipNext = consumeCsvCharacter(state, input[index], input[index + 1]);
+    index += skipNext ? 2 : 1;
   }
-
-  if (quoted) throw new Error('Unclosed quoted CSV field.');
-  if (field !== '' || row.length > 0 || afterQuote) {
-    row.push(field);
-    rows.push(row);
-  }
-  return rows;
+  return finishCsv(state);
 }
 
 /** @param {unknown} condition @param {string} message */
@@ -112,6 +171,30 @@ function digest(value) {
   return createHash('sha256').update(value).digest('hex');
 }
 
+/** @param {string} root @param {string} path */
+export function resolveRepositoryPath(root, path) {
+  requireCondition(
+    typeof path === 'string' && path.length > 0,
+    'Repository path must be a non-empty string.'
+  );
+  const repositoryRoot = realpathSync(root);
+  const targetPath = realpathSync(resolve(repositoryRoot, path));
+  const relativePath = relative(repositoryRoot, targetPath);
+  requireCondition(
+    relativePath !== '' &&
+      relativePath !== '..' &&
+      !relativePath.startsWith(`..${sep}`) &&
+      !isAbsolute(relativePath),
+    `Path resolves outside the repository: ${path}.`
+  );
+  return targetPath;
+}
+
+/** @param {string} root @param {string} path */
+function readRepositoryFile(root, path) {
+  return readFileSync(resolveRepositoryPath(root, path), 'utf8');
+}
+
 /** @param {Manifest} manifest @param {Record<string, string>} files */
 export function validateManifest(manifest, files) {
   requireCondition(
@@ -120,7 +203,7 @@ export function validateManifest(manifest, files) {
   );
   requireCondition(
     typeof manifest.curriculum_version === 'string' &&
-      semver.test(manifest.curriculum_version),
+      isSemver(manifest.curriculum_version),
     'Invalid curriculum version.'
   );
   requireCondition(
@@ -227,10 +310,12 @@ export function validateCatalog(records, knownSources, registryIds) {
     catalog.set(id, row);
   }
 
+  const catalogTracks = new Set(
+    records.slice(1).map((row) => `${row[1]} ${row[2]}`)
+  );
   requireCondition(
-    JSON.stringify(
-      [...new Set(records.slice(1).map((row) => `${row[1]} ${row[2]}`))].sort()
-    ) === JSON.stringify([...tracks].sort()),
+    catalogTracks.size === tracks.length &&
+      tracks.every((track) => catalogTracks.has(track)),
     'Catalog does not contain exactly the five requested tracks.'
   );
   for (const id of catalog.keys())
@@ -257,24 +342,38 @@ export function validateCatalog(records, knownSources, registryIds) {
 
 /** @param {IdRegistry} registry @param {Catalog} catalog @param {string[]} [previousIds] */
 export function validateIdRegistry(registry, catalog, previousIds = []) {
-  requireCondition(
-    registry.schema_version === 1 && Array.isArray(registry.ids),
-    'Invalid ID registry.'
-  );
-  requireCondition(
-    new Set(registry.ids).size === registry.ids.length,
-    'Duplicate ID registry entry.'
-  );
+  const ids = validateIdRegistryShape(registry);
   for (const id of catalog.keys())
+    requireCondition(ids.includes(id), `Skill ID is not registered: ${id}.`);
+  for (const id of ids)
     requireCondition(
-      registry.ids.includes(id),
-      `Skill ID is not registered: ${id}.`
+      catalog.has(id),
+      `Registered ID is missing its catalog tombstone: ${id}.`
     );
   for (const id of previousIds)
     requireCondition(
-      registry.ids.includes(id),
+      ids.includes(id),
       `Previously registered ID was removed: ${id}.`
     );
+}
+
+/** @param {unknown} value @returns {string[]} */
+export function validateIdRegistryShape(value) {
+  requireCondition(
+    typeof value === 'object' &&
+      value !== null &&
+      'schema_version' in value &&
+      value.schema_version === 1 &&
+      'ids' in value &&
+      Array.isArray(value.ids) &&
+      value.ids.every((id) => typeof id === 'string' && id.trim().length > 0),
+    'Invalid ID registry.'
+  );
+  requireCondition(
+    new Set(value.ids).size === value.ids.length,
+    'Duplicate ID registry entry.'
+  );
+  return value.ids;
 }
 
 /** @param {Graph} graph @param {Catalog} catalog @returns {number} */
@@ -353,7 +452,7 @@ export function validateGraph(graph, catalog) {
 /** @param {string} root @param {string[]} [previousIds] */
 export function validateBundle(root, previousIds = []) {
   const manifest = JSON.parse(
-    readFileSync(resolve(root, 'content/curriculum-manifest.json'), 'utf8')
+    readRepositoryFile(root, 'content/curriculum-manifest.json')
   );
   const paths = [
     manifest.coverage_file,
@@ -361,10 +460,10 @@ export function validateBundle(root, previousIds = []) {
     manifest.id_registry_file
   ];
   const files = Object.fromEntries(
-    paths.map((path) => [path, readFileSync(resolve(root, path), 'utf8')])
+    paths.map((path) => [path, readRepositoryFile(root, path)])
   );
   validateManifest(manifest, files);
-  const evidence = readFileSync(resolve(root, 'docs/evidence/T004.md'), 'utf8');
+  const evidence = readRepositoryFile(root, 'docs/evidence/T004.md');
   const knownSources = new Set(
     [...evidence.matchAll(/^\|\s*`([A-Z0-9-]+)`\s*\|/gmu)].map(
       (match) => match[1]
@@ -386,14 +485,16 @@ if (
   const root = process.cwd();
   const previousRegistryPath = process.argv[2];
   const previousIds = previousRegistryPath
-    ? JSON.parse(readFileSync(resolve(root, previousRegistryPath), 'utf8')).ids
+    ? validateIdRegistryShape(
+        JSON.parse(readRepositoryFile(root, previousRegistryPath))
+      )
     : [];
   const { records, edges, manifest } = validateBundle(root, previousIds);
-  console.log(
+  log(
     `PASS: ${records.length - 1} curriculum records; ${edges} edges; ${manifest.publication_status} bundle ${manifest.curriculum_version}.`
   );
   if (!previousRegistryPath) {
-    console.log(
+    log(
       'ID reuse across versions requires comparison with the previous registry before approval.'
     );
   }

@@ -6,10 +6,12 @@ import type { Graph } from '../scripts/curriculum-contract.mjs';
 import {
   headers,
   parseCsv,
+  resolveRepositoryPath,
   validateBundle,
   validateCatalog,
   validateGraph,
   validateIdRegistry,
+  validateIdRegistryShape,
   validateManifest
 } from '../scripts/curriculum-contract.mjs';
 
@@ -35,6 +37,18 @@ function getNode(source: Graph, id: string) {
 }
 
 describe('versioned curriculum bundle contract', () => {
+  it('confines bundle and prior-registry file paths to the repository', () => {
+    expect(
+      resolveRepositoryPath(root, 'content/curriculum-manifest.json')
+    ).toBe(resolve(root, 'content/curriculum-manifest.json'));
+    expect(() => resolveRepositoryPath(root, '../')).toThrow(
+      /outside the repository/u
+    );
+    expect(() => resolveRepositoryPath(root, '/tmp')).toThrow(
+      /outside the repository/u
+    );
+  });
+
   it('uses a pre-release version, separate publication status, explicit scope and file hashes', () => {
     const files = Object.fromEntries(
       [
@@ -63,10 +77,16 @@ describe('versioned curriculum bundle contract', () => {
     ).toThrow();
     expect(() =>
       validateManifest(
+        { ...manifest, curriculum_version: '0.1.0-draft.01' },
+        files
+      )
+    ).toThrow(/Invalid curriculum version/u);
+    expect(() =>
+      validateManifest(
         { ...manifest, curriculum_version: '0.1.0-draft..1' },
         files
       )
-    ).toThrow();
+    ).toThrow(/Invalid curriculum version/u);
     expect(() =>
       validateManifest({ ...manifest, coverage_sha256: '0'.repeat(64) }, files)
     ).toThrow();
@@ -76,6 +96,10 @@ describe('versioned curriculum bundle contract', () => {
     expect(parseCsv('id,skill\n1,"be, have"\n')).toEqual([
       ['id', 'skill'],
       ['1', 'be, have']
+    ]);
+    expect(parseCsv('id,skill\r\n1,"say ""hello"""\r\n')).toEqual([
+      ['id', 'skill'],
+      ['1', 'say "hello"']
     ]);
     expect(() => parseCsv('id,skill\n1,"unfinished\n')).toThrow();
     expect(() => parseCsv('id,skill\n1,un"escaped\n')).toThrow();
@@ -166,7 +190,21 @@ describe('versioned curriculum bundle contract', () => {
 
   it('requires a unique ID registry and rejects removal of an earlier ID', () => {
     validateIdRegistry(registry, catalog);
+    expect(validateIdRegistryShape(registry)).toEqual(registry.ids);
+    expect(() => validateIdRegistryShape({})).toThrow(/Invalid ID registry/u);
+    expect(() =>
+      validateIdRegistryShape({ schema_version: 1, ids: [''] })
+    ).toThrow(/Invalid ID registry/u);
     const firstId = registry.ids[0];
+    const retiredId = [...catalog.values()].find(
+      (row) => row[9] === 'retired'
+    )?.[0];
+    if (!retiredId) throw new Error('The catalog needs a retired skill.');
+    const missingTombstone = new Map(catalog);
+    missingTombstone.delete(retiredId);
+    expect(() => validateIdRegistry(registry, missingTombstone)).toThrow(
+      /missing its catalog tombstone/u
+    );
     expect(() =>
       validateIdRegistry(
         { ...registry, ids: [...registry.ids, firstId] },
@@ -180,25 +218,25 @@ describe('versioned curriculum bundle contract', () => {
 
   it('validates same-language, level-ordered, acyclic graph structure without pinning lesson choices', () => {
     expect(validateGraph(graph, catalog)).toBe(edges);
-    const omitted = structuredClone(graph);
+    const omitted = globalThis.structuredClone(graph);
     Reflect.deleteProperty(omitted.nodes[0], 'prerequisites');
     expect(() => validateGraph(omitted, catalog)).toThrow(
       /Invalid prerequisites/u
     );
 
-    const missing = structuredClone(graph);
+    const missing = globalThis.structuredClone(graph);
     missing.nodes[0].prerequisites = ['missing-skill-id'];
     expect(() => validateGraph(missing, catalog)).toThrow(
       /Unknown prerequisite/u
     );
 
-    const selfEdge = structuredClone(graph);
+    const selfEdge = globalThis.structuredClone(graph);
     selfEdge.nodes[0].prerequisites = [selfEdge.nodes[0].skill_id];
     expect(() => validateGraph(selfEdge, catalog)).toThrow(
       /Self prerequisite/u
     );
 
-    const crossLanguage = structuredClone(graph);
+    const crossLanguage = globalThis.structuredClone(graph);
     const first = catalog.values().next().value;
     if (!first) throw new Error('The catalog is empty.');
     const otherLanguage = [...catalog.values()].find(
@@ -227,7 +265,7 @@ describe('versioned curriculum bundle contract', () => {
       (row) => row[9] === 'active' && row[1] === a1[1] && row[2] === 'A2'
     );
     if (!higherLevel) throw new Error('The catalog needs an active A2 skill.');
-    const invalidLevel = structuredClone(graph);
+    const invalidLevel = globalThis.structuredClone(graph);
     getNode(invalidLevel, a1[0]).prerequisites = [higherLevel[0]];
     expect(() => validateGraph(invalidLevel, catalog)).toThrow(
       /Higher-level prerequisite/u
@@ -235,13 +273,13 @@ describe('versioned curriculum bundle contract', () => {
 
     const retired = [...catalog.values()].find((row) => row[9] === 'retired');
     if (!retired) throw new Error('The catalog needs a retired skill.');
-    const retiredDependency = structuredClone(graph);
+    const retiredDependency = globalThis.structuredClone(graph);
     getNode(retiredDependency, a1[0]).prerequisites = [retired[0]];
     expect(() => validateGraph(retiredDependency, catalog)).toThrow(
       /Retired skill is a prerequisite/u
     );
 
-    const cycle = structuredClone(graph);
+    const cycle = globalThis.structuredClone(graph);
     const peers = [...catalog.values()].filter(
       (row) => row[9] === 'active' && row[1] === first[1] && row[2] === first[2]
     );

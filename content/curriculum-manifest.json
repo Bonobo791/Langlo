@@ -5,7 +5,7 @@
   "coverage_file": "docs/curriculum-coverage.csv",
   "coverage_sha256": "d312bc79709d27c46ced5f629cfc05173ab4c3809a757b152f5c104134036a7b",
   "prerequisites_file": "content/prerequisites.json",
-  "prerequisites_sha256": "d9a6465372d4240c51f14e58780b97e388866b3e0d91ec4e82afb00f0d56e305",
+  "prerequisites_sha256": "e797a7b152ef08f29b93047e447cee35ed9c2833c93b5f49d7b4dfd1ff009855",
   "id_registry_file": "content/curriculum-id-registry.json",
   "id_registry_sha256": "b36ba07f2dc377b9af4a15c84a092409dd54a1f09dca4ccf436df58133ce3972",
   "dependency_semantics": "recommended_teaching_order",
