@@ -1,0 +1,505 @@
+{
+  "schema_version": 1,
+  "nodes": [
+    {
+      "skill_id": "fr-a1-001",
+      "prerequisites": []
+    },
+    {
+      "skill_id": "fr-a1-002",
+      "prerequisites": ["fr-a1-001"]
+    },
+    {
+      "skill_id": "fr-a1-003",
+      "prerequisites": ["fr-a1-001"]
+    },
+    {
+      "skill_id": "fr-a1-004",
+      "prerequisites": ["fr-a1-002"]
+    },
+    {
+      "skill_id": "fr-a1-005",
+      "prerequisites": ["fr-a1-003", "fr-a1-004"]
+    },
+    {
+      "skill_id": "fr-a1-006",
+      "prerequisites": ["fr-a1-003"]
+    },
+    {
+      "skill_id": "fr-a1-007",
+      "prerequisites": ["fr-a1-003", "fr-a1-004"]
+    },
+    {
+      "skill_id": "fr-a1-008",
+      "prerequisites": ["fr-a1-007"]
+    },
+    {
+      "skill_id": "fr-a1-009",
+      "prerequisites": []
+    },
+    {
+      "skill_id": "fr-a1-010",
+      "prerequisites": ["fr-a1-009"]
+    },
+    {
+      "skill_id": "fr-a1-011",
+      "prerequisites": ["fr-a1-009", "fr-a1-010"]
+    },
+    {
+      "skill_id": "fr-a1-012",
+      "prerequisites": ["fr-a1-009", "fr-a1-010"]
+    },
+    {
+      "skill_id": "fr-a1-013",
+      "prerequisites": ["fr-a1-009", "fr-a1-010"]
+    },
+    {
+      "skill_id": "fr-a1-014",
+      "prerequisites": ["fr-a1-009", "fr-a1-010"]
+    },
+    {
+      "skill_id": "fr-a1-015",
+      "prerequisites": []
+    },
+    {
+      "skill_id": "fr-a1-016",
+      "prerequisites": ["fr-a1-015"]
+    },
+    {
+      "skill_id": "fr-a1-017",
+      "prerequisites": []
+    },
+    {
+      "skill_id": "fr-a1-018",
+      "prerequisites": ["fr-a1-003", "fr-a1-004"]
+    },
+    {
+      "skill_id": "fr-a1-019",
+      "prerequisites": ["fr-a1-005"]
+    },
+    {
+      "skill_id": "fr-a1-020",
+      "prerequisites": []
+    },
+    {
+      "skill_id": "fr-a1-021",
+      "prerequisites": ["fr-a1-003", "fr-a1-004"]
+    },
+    {
+      "skill_id": "fr-a1-022",
+      "prerequisites": ["fr-a1-005", "fr-a1-017"]
+    },
+    {
+      "skill_id": "fr-a1-023",
+      "prerequisites": ["fr-a1-002", "fr-a1-004"]
+    },
+    {
+      "skill_id": "fr-a1-024",
+      "prerequisites": ["fr-a1-001", "fr-a1-009"]
+    },
+    {
+      "skill_id": "fr-a1-025",
+      "prerequisites": ["fr-a1-017", "fr-a1-018"]
+    },
+    {
+      "skill_id": "fr-a1-026",
+      "prerequisites": ["fr-a1-007", "fr-a1-008"]
+    },
+    {
+      "skill_id": "fr-a1-027",
+      "prerequisites": ["fr-a1-009", "fr-a1-011"]
+    },
+    {
+      "skill_id": "fr-a1-028",
+      "prerequisites": ["fr-a1-004", "fr-a1-017"]
+    },
+    {
+      "skill_id": "de-a1-001",
+      "prerequisites": []
+    },
+    {
+      "skill_id": "de-a1-002",
+      "prerequisites": ["de-a1-001"]
+    },
+    {
+      "skill_id": "de-a1-003",
+      "prerequisites": ["de-a1-002"]
+    },
+    {
+      "skill_id": "de-a1-004",
+      "prerequisites": []
+    },
+    {
+      "skill_id": "de-a1-005",
+      "prerequisites": ["de-a1-004"]
+    },
+    {
+      "skill_id": "de-a1-006",
+      "prerequisites": ["de-a1-004", "de-a1-007"]
+    },
+    {
+      "skill_id": "de-a1-007",
+      "prerequisites": []
+    },
+    {
+      "skill_id": "de-a1-008",
+      "prerequisites": ["de-a1-007"]
+    },
+    {
+      "skill_id": "de-a1-009",
+      "prerequisites": ["de-a1-007", "de-a1-011"]
+    },
+    {
+      "skill_id": "de-a1-010",
+      "prerequisites": ["de-a1-009"]
+    },
+    {
+      "skill_id": "de-a1-011",
+      "prerequisites": ["de-a1-007"]
+    },
+    {
+      "skill_id": "de-a1-012",
+      "prerequisites": ["de-a1-011"]
+    },
+    {
+      "skill_id": "de-a1-013",
+      "prerequisites": ["de-a1-007", "de-a1-011"]
+    },
+    {
+      "skill_id": "de-a1-014",
+      "prerequisites": []
+    },
+    {
+      "skill_id": "de-a1-015",
+      "prerequisites": ["de-a1-014", "de-a1-010"]
+    },
+    {
+      "skill_id": "de-a1-016",
+      "prerequisites": []
+    },
+    {
+      "skill_id": "de-a1-017",
+      "prerequisites": ["de-a1-001", "de-a1-004"]
+    },
+    {
+      "skill_id": "de-a1-018",
+      "prerequisites": ["de-a1-004", "de-a1-005"]
+    },
+    {
+      "skill_id": "de-a1-019",
+      "prerequisites": ["de-a1-005"]
+    },
+    {
+      "skill_id": "de-a1-020",
+      "prerequisites": ["de-a1-001", "de-a1-004"]
+    },
+    {
+      "skill_id": "de-a1-021",
+      "prerequisites": ["de-a1-016"]
+    },
+    {
+      "skill_id": "de-a1-022",
+      "prerequisites": []
+    },
+    {
+      "skill_id": "de-a1-023",
+      "prerequisites": []
+    },
+    {
+      "skill_id": "de-a1-024",
+      "prerequisites": []
+    },
+    {
+      "skill_id": "de-a1-025",
+      "prerequisites": ["de-a1-006", "de-a1-009"]
+    },
+    {
+      "skill_id": "de-a1-026",
+      "prerequisites": ["de-a1-001", "de-a1-023"]
+    },
+    {
+      "skill_id": "de-a1-027",
+      "prerequisites": ["de-a1-001", "de-a1-006"]
+    },
+    {
+      "skill_id": "de-a2-001",
+      "prerequisites": ["de-a1-004", "de-a1-005", "de-a1-018"]
+    },
+    {
+      "skill_id": "de-a2-002",
+      "prerequisites": ["de-a2-001", "de-a1-016"]
+    },
+    {
+      "skill_id": "de-a2-003",
+      "prerequisites": ["de-a1-017", "de-a1-001"]
+    },
+    {
+      "skill_id": "de-a2-004",
+      "prerequisites": ["de-a1-016", "de-a1-017"]
+    },
+    {
+      "skill_id": "de-a2-005",
+      "prerequisites": ["de-a1-001", "de-a1-024"]
+    },
+    {
+      "skill_id": "de-a2-006",
+      "prerequisites": ["de-a1-001", "de-a1-003"]
+    },
+    {
+      "skill_id": "de-a2-007",
+      "prerequisites": ["de-a2-006", "de-a1-003"]
+    },
+    {
+      "skill_id": "de-a2-008",
+      "prerequisites": ["de-a1-009", "de-a1-010"]
+    },
+    {
+      "skill_id": "de-a2-009",
+      "prerequisites": ["de-a2-008", "de-a1-023"]
+    },
+    {
+      "skill_id": "de-a2-010",
+      "prerequisites": ["de-a1-014", "de-a1-015"]
+    },
+    {
+      "skill_id": "de-a2-011",
+      "prerequisites": ["de-a1-014"]
+    },
+    {
+      "skill_id": "de-a2-012",
+      "prerequisites": ["de-a1-012", "de-a2-008"]
+    },
+    {
+      "skill_id": "de-a2-013",
+      "prerequisites": ["de-a1-013", "de-a2-008"]
+    },
+    {
+      "skill_id": "de-a2-014",
+      "prerequisites": ["de-a1-022", "de-a2-008"]
+    },
+    {
+      "skill_id": "de-a2-015",
+      "prerequisites": ["de-a1-022"]
+    },
+    {
+      "skill_id": "de-a2-016",
+      "prerequisites": ["de-a1-013"]
+    },
+    {
+      "skill_id": "de-a2-017",
+      "prerequisites": ["de-a1-023", "de-a2-008"]
+    },
+    {
+      "skill_id": "de-a2-018",
+      "prerequisites": ["de-a1-023", "de-a2-008"]
+    },
+    {
+      "skill_id": "de-a2-019",
+      "prerequisites": ["de-a2-005", "de-a2-006"]
+    },
+    {
+      "skill_id": "de-a2-020",
+      "prerequisites": ["de-a1-016"]
+    },
+    {
+      "skill_id": "de-a2-021",
+      "prerequisites": ["de-a1-004"]
+    },
+    {
+      "skill_id": "de-a2-022",
+      "prerequisites": ["de-a1-020"]
+    },
+    {
+      "skill_id": "de-a2-023",
+      "prerequisites": ["de-a1-022"]
+    },
+    {
+      "skill_id": "de-a2-024",
+      "prerequisites": ["de-a1-011", "de-a2-008"]
+    },
+    {
+      "skill_id": "en-a1-001",
+      "prerequisites": []
+    },
+    {
+      "skill_id": "en-a1-002",
+      "prerequisites": []
+    },
+    {
+      "skill_id": "en-a1-003",
+      "prerequisites": ["en-a1-024"]
+    },
+    {
+      "skill_id": "en-a1-004",
+      "prerequisites": ["en-a1-024"]
+    },
+    {
+      "skill_id": "en-a1-005",
+      "prerequisites": ["en-a1-003"]
+    },
+    {
+      "skill_id": "en-a1-006",
+      "prerequisites": ["en-a1-024"]
+    },
+    {
+      "skill_id": "en-a1-007",
+      "prerequisites": ["en-a1-006"]
+    },
+    {
+      "skill_id": "en-a1-008",
+      "prerequisites": ["en-a1-024"]
+    },
+    {
+      "skill_id": "en-a1-009",
+      "prerequisites": []
+    },
+    {
+      "skill_id": "en-a1-010",
+      "prerequisites": ["en-a1-009"]
+    },
+    {
+      "skill_id": "en-a1-011",
+      "prerequisites": ["en-a1-009", "en-a1-013"]
+    },
+    {
+      "skill_id": "en-a1-012",
+      "prerequisites": ["en-a1-009"]
+    },
+    {
+      "skill_id": "en-a1-013",
+      "prerequisites": []
+    },
+    {
+      "skill_id": "en-a1-014",
+      "prerequisites": ["en-a1-009"]
+    },
+    {
+      "skill_id": "en-a1-015",
+      "prerequisites": ["en-a1-003"]
+    },
+    {
+      "skill_id": "en-a1-016",
+      "prerequisites": []
+    },
+    {
+      "skill_id": "en-a1-017",
+      "prerequisites": []
+    },
+    {
+      "skill_id": "en-a1-018",
+      "prerequisites": []
+    },
+    {
+      "skill_id": "en-a1-019",
+      "prerequisites": ["en-a1-024", "en-a1-010"]
+    },
+    {
+      "skill_id": "en-a1-020",
+      "prerequisites": ["en-a1-001"]
+    },
+    {
+      "skill_id": "en-a1-021",
+      "prerequisites": ["en-a1-009", "en-a1-010"]
+    },
+    {
+      "skill_id": "en-a1-022",
+      "prerequisites": ["en-a1-001", "en-a1-003"]
+    },
+    {
+      "skill_id": "en-a2-001",
+      "prerequisites": ["en-a1-003", "en-a1-006", "en-a1-008"]
+    },
+    {
+      "skill_id": "en-a2-002",
+      "prerequisites": ["en-a2-001"]
+    },
+    {
+      "skill_id": "en-a2-003",
+      "prerequisites": ["en-a1-003", "en-a1-005"]
+    },
+    {
+      "skill_id": "en-a2-004",
+      "prerequisites": ["en-a1-003"]
+    },
+    {
+      "skill_id": "en-a2-005",
+      "prerequisites": ["en-a1-024"]
+    },
+    {
+      "skill_id": "en-a2-006",
+      "prerequisites": ["en-a1-004", "en-a1-006"]
+    },
+    {
+      "skill_id": "en-a2-007",
+      "prerequisites": ["en-a1-006", "en-a1-020"]
+    },
+    {
+      "skill_id": "en-a2-008",
+      "prerequisites": ["en-a1-003"]
+    },
+    {
+      "skill_id": "en-a2-009",
+      "prerequisites": ["en-a2-007"]
+    },
+    {
+      "skill_id": "en-a2-010",
+      "prerequisites": ["en-a1-003", "en-a1-022"]
+    },
+    {
+      "skill_id": "en-a2-011",
+      "prerequisites": ["en-a1-014"]
+    },
+    {
+      "skill_id": "en-a2-012",
+      "prerequisites": ["en-a2-011", "en-a1-015"]
+    },
+    {
+      "skill_id": "en-a2-013",
+      "prerequisites": ["en-a1-007", "en-a1-018"]
+    },
+    {
+      "skill_id": "en-a2-014",
+      "prerequisites": ["en-a1-018"]
+    },
+    {
+      "skill_id": "en-a2-015",
+      "prerequisites": ["en-a2-014"]
+    },
+    {
+      "skill_id": "en-a2-016",
+      "prerequisites": ["en-a1-024", "en-a2-014"]
+    },
+    {
+      "skill_id": "en-a2-017",
+      "prerequisites": ["en-a1-003", "en-a2-001"]
+    },
+    {
+      "skill_id": "en-a2-018",
+      "prerequisites": ["en-a1-012"]
+    },
+    {
+      "skill_id": "en-a2-019",
+      "prerequisites": ["en-a1-006"]
+    },
+    {
+      "skill_id": "en-a2-020",
+      "prerequisites": ["en-a1-015"]
+    },
+    {
+      "skill_id": "en-a2-021",
+      "prerequisites": ["en-a1-016"]
+    },
+    {
+      "skill_id": "en-a2-022",
+      "prerequisites": ["en-a1-022"]
+    },
+    {
+      "skill_id": "en-a2-023",
+      "prerequisites": ["en-a1-003", "en-a1-022", "en-a1-016"]
+    },
+    {
+      "skill_id": "en-a1-024",
+      "prerequisites": ["en-a1-001"]
+    }
+  ]
+}
