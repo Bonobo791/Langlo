@@ -18,7 +18,14 @@ export const handle: Handle = async ({ event, resolve }) => {
     'x-content-type-options': 'nosniff',
     'referrer-policy': 'no-referrer'
   };
-  if (privateRoute || path.startsWith('/health/') || path === '/build.json') {
+  const prototypeRoute =
+    path === '/prototype' || path.startsWith('/prototype/');
+  if (
+    privateRoute ||
+    prototypeRoute ||
+    path.startsWith('/health/') ||
+    path === '/build.json'
+  ) {
     headers['x-robots-tag'] = 'noindex, nofollow';
   }
   // Liveness never depends on application config, schema, auth or a provider.
