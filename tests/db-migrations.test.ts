@@ -247,6 +247,10 @@ describe('disposable libSQL migrations', () => {
     await migrateFixtureDatabase(target);
     const { client, close } = await openFixtureDatabase(target);
     try {
+      const reviewTable = await client.execute(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'native_flashcard_review_events'"
+      );
+      expect(String(reviewTable.rows[0].sql)).toMatch(/WITHOUT ROWID/i);
       expect(
         (
           await client.execute(
@@ -257,11 +261,12 @@ describe('disposable libSQL migrations', () => {
       expect(
         (
           await client.execute(
-            "SELECT name FROM sqlite_master WHERE type = 'trigger' AND name IN ('native_flashcard_review_events_no_update', 'native_flashcard_review_events_no_delete') ORDER BY name"
+            "SELECT name FROM sqlite_master WHERE type = 'trigger' AND name IN ('native_flashcard_review_events_no_delete', 'native_flashcard_review_events_no_replace', 'native_flashcard_review_events_no_update') ORDER BY name"
           )
         ).rows.map((row) => row.name)
       ).toEqual([
         'native_flashcard_review_events_no_delete',
+        'native_flashcard_review_events_no_replace',
         'native_flashcard_review_events_no_update'
       ]);
     } finally {

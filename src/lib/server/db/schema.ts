@@ -637,9 +637,10 @@ export const nativeFlashcards = sqliteTable(
   ]
 );
 
-// Migration 0004 adds hand-authored append-only BEFORE UPDATE/DELETE triggers.
-// Preserve both triggers in future table rebuilds; DELETE is permitted only
-// after the parent card has been removed by the intentional owner-data cascade.
+// Migration 0004 uses WITHOUT ROWID (not expressible by this Drizzle builder)
+// and adds hand-authored UPDATE/DELETE and duplicate-INSERT guards. Preserve the
+// table option and all three triggers in rebuilds; DELETE is permitted only after
+// the parent card has been removed by the intentional owner-data cascade.
 export const nativeFlashcardReviewEvents = sqliteTable(
   'native_flashcard_review_events',
   {

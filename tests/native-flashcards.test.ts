@@ -172,6 +172,48 @@ describe('native flashcard persistence feasibility', () => {
           [learner.userId, review.submissionId]
         )
       ).rejects.toThrow(/append-only/i);
+      await db.client.execute('PRAGMA recursive_triggers = OFF');
+      await expect(
+        db.client.execute({
+          sql: 'INSERT OR REPLACE INTO native_flashcard_review_events (id, owner_id, card_id, expected_revision, rating, reviewed_at, scheduler_version, parameters_json, result_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          args: [
+            review.submissionId,
+            learner.userId,
+            note.cardId,
+            0,
+            'easy',
+            submittedAt + 1,
+            'ts-fsrs@5.4.2',
+            '{}',
+            '{}'
+          ]
+        })
+      ).rejects.toThrow(/append-only/i);
+      await expect(
+        db.client.execute({
+          sql: 'INSERT OR REPLACE INTO native_flashcard_review_events (rowid, id, owner_id, card_id, expected_revision, rating, reviewed_at, scheduler_version, parameters_json, result_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          args: [
+            1,
+            'review-10000000-0000-4000-8000-000000000099',
+            learner.userId,
+            note.cardId,
+            0,
+            'easy',
+            submittedAt + 2,
+            'ts-fsrs@5.4.2',
+            '{}',
+            '{}'
+          ]
+        })
+      ).rejects.toThrow(/rowid|column/i);
+      expect(
+        (
+          await db.client.execute(
+            'SELECT rating FROM native_flashcard_review_events WHERE owner_id = ? AND id = ?',
+            [learner.userId, review.submissionId]
+          )
+        ).rows[0].rating
+      ).toBe('good');
 
       const persisted = await getNote(db.client, learner, note.id);
       expect(persisted.card).toMatchObject({

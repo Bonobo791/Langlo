@@ -123,6 +123,16 @@ class T003ApkgRegressionTests(unittest.TestCase):
             self.assertLess(edited[guid][1], renamed[guid][1])
 
     def test_checker_rejects_wrong_basic_and_cloze_card_distribution(self) -> None:
+        intact = subprocess.run(
+            [sys.executable, str(CHECKER), str(self.first)],
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(
+            intact.returncode,
+            0,
+            f"checker rejected intact package: {intact.stderr or intact.stdout}",
+        )
         corrupted = self.root / "wrong-model-counts"
         shutil.copytree(self.first, corrupted)
         for name in ("T003-initial.apkg", "T003-unchanged-reexport.apkg"):
