@@ -77,7 +77,10 @@ def reassign_cloze_card_to_basic(path: Path) -> None:
                 )
         output_path.replace(path)
     finally:
-        output_path.unlink(missing_ok=True)
+        try:
+            output_path.unlink()
+        except FileNotFoundError:
+            pass
 
 
 class T003ApkgRegressionTests(unittest.TestCase):
@@ -125,6 +128,7 @@ class T003ApkgRegressionTests(unittest.TestCase):
     def test_checker_rejects_wrong_basic_and_cloze_card_distribution(self) -> None:
         intact = subprocess.run(
             [sys.executable, str(CHECKER), str(self.first)],
+            check=False,
             capture_output=True,
             text=True,
         )
@@ -139,6 +143,7 @@ class T003ApkgRegressionTests(unittest.TestCase):
             reassign_cloze_card_to_basic(corrupted / name)
         result = subprocess.run(
             [sys.executable, str(CHECKER), str(corrupted)],
+            check=False,
             capture_output=True,
             text=True,
         )
@@ -146,6 +151,17 @@ class T003ApkgRegressionTests(unittest.TestCase):
             result.returncode,
             0,
             "checker accepted a two-card package with no Cloze card",
+        )
+        optimized = subprocess.run(
+            [sys.executable, "-O", str(CHECKER), str(corrupted)],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(
+            optimized.returncode,
+            0,
+            "optimized Python disabled the checker's validation",
         )
 
 
