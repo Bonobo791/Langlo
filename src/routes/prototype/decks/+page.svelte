@@ -31,10 +31,12 @@
     status: 'approved' | 'rejected'
   ) {
     const note = deck.notes.find((n) => n.id === noteId);
-    if (note) {
-      note.status = status;
-      notice = `“${note.preview}” ${statusLabel[status].toLowerCase()}.`;
-    }
+    if (!note) return;
+    const wasDraft = note.status === 'draft';
+    note.status = status;
+    // Drafts are unscheduled; approval puts the note into scheduling.
+    if (wasDraft && status === 'approved') deck.counts[note.scheduling] += 1;
+    notice = `“${note.preview}” ${statusLabel[status].toLowerCase()}.`;
   }
   function toggleSuspend(deck: Deck, noteId: string) {
     const note = deck.notes.find((n) => n.id === noteId);

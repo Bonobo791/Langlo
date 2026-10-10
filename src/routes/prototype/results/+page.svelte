@@ -31,7 +31,6 @@
       status: 'draft',
       scheduling: 'new'
     });
-    mistakes.counts.new += 1;
   }
 </script>
 
@@ -103,32 +102,39 @@
     </ul>
   </section>
 
-  <section class="panel" aria-labelledby="missed-heading">
-    <h2 id="missed-heading">Keep a mistake as a flashcard</h2>
-    <ul>
-      {#each defaultResults.missedItems as missed (missed.prompt)}
-        <li class="missed">
-          <p class="prompt">{missed.prompt}</p>
-          <p>
-            Your answer: {missed.yourAnswer}<br />
-            Accepted: <strong>{missed.expected}</strong>
-          </p>
-          {#if keptDraft}
-            <p class="muted">Added to drafts — approve it in Decks.</p>
-          {:else}
-            <button class="secondary" type="button" onclick={keepAsFlashcard}
-              >Keep as flashcard</button
-            >
-          {/if}
-        </li>
-      {/each}
-    </ul>
-    {#if keptDraft}
-      <p role="status" class="announced">
-        Draft card created. It stays a draft until you approve it.
-      </p>
-    {/if}
-  </section>
+  {#if incorrect > 0}
+    <section class="panel" aria-labelledby="missed-heading">
+      <h2 id="missed-heading">Keep a mistake as a flashcard</h2>
+      <ul>
+        {#each defaultResults.missedItems as missed (missed.prompt)}
+          <li class="missed">
+            <p class="prompt">{missed.prompt}</p>
+            <p>
+              Your answer: {missed.yourAnswer}<br />
+              Accepted: <strong>{missed.expected}</strong>
+            </p>
+            {#if keptDraft}
+              <p class="muted">Added to drafts — approve it in Decks.</p>
+            {:else}
+              <button class="secondary" type="button" onclick={keepAsFlashcard}
+                >Keep as flashcard</button
+              >
+            {/if}
+          </li>
+        {/each}
+      </ul>
+      {#if keptDraft}
+        <p role="status" class="announced">
+          Draft card created. It stays a draft until you approve it.
+        </p>
+      {/if}
+    </section>
+  {:else}
+    <section class="panel" aria-labelledby="missed-heading">
+      <h2 id="missed-heading">Keep a mistake as a flashcard</h2>
+      <p class="muted">No mistakes this session — nothing to keep.</p>
+    </section>
+  {/if}
 
   <div class="actions">
     <a class="button" href={resolve('/prototype/review')}>Review due cards</a>

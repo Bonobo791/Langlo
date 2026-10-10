@@ -3,11 +3,14 @@
   import { page } from '$app/state';
   import StateSwitcher from '../../../lib/prototype/StateSwitcher.svelte';
 
-  import { frenchA1 } from '../../../lib/prototype/data';
+  import { tracks } from '../../../lib/prototype/data';
 
   const screenState = $derived(page.url.searchParams.get('state') ?? 'normal');
   const requested = $derived(
-    frenchA1.find((s) => s.id === page.url.searchParams.get('skill'))
+    tracks
+      .filter((t) => t.enrolled)
+      .flatMap((t) => t.skills)
+      .find((s) => s.id === page.url.searchParams.get('skill'))
   );
 </script>
 
