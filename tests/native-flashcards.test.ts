@@ -33,6 +33,10 @@ async function fixture() {
 // These contexts stand in for a verified identity in tests only. Production auth is not implemented.
 const testSession = (userId: string): LearnerSession => ({ userId });
 
+function testSourceId(identity: string): string {
+  return `langlo:v1:${identity.replaceAll('-', '').padStart(64, '0')}`;
+}
+
 describe('native flashcard persistence feasibility', () => {
   it('persists an approved Basic note across fresh test sessions and scopes it to its owner', async () => {
     const target = await fixture();
@@ -46,7 +50,7 @@ describe('native flashcard persistence feasibility', () => {
       });
       await createNote(first.client, ownerA, {
         id: 'note-10000000-0000-4000-8000-000000000001',
-        sourceId: 'source-10000000-0000-4000-8000-000000000001',
+        sourceId: testSourceId('10000000-0000-4000-8000-000000000001'),
         deckId: 'deck-10000000-0000-4000-8000-000000000001',
         kind: 'basic',
         content: { front: 'Bonjour', back: 'Hello' }
@@ -113,7 +117,7 @@ describe('native flashcard persistence feasibility', () => {
       await expect(
         createNote(db.client, learner, {
           id: 'note-10000000-0000-4000-8000-000000000010',
-          sourceId: 'source-10000000-0000-4000-8000-000000000010',
+          sourceId: testSourceId('10000000-0000-4000-8000-000000000010'),
           deckId: 'deck-10000000-0000-4000-8000-000000000010',
           kind: 'basic',
           content: {
@@ -125,7 +129,7 @@ describe('native flashcard persistence feasibility', () => {
       await expect(
         createNote(db.client, learner, {
           id: 'note-10000000-0000-4000-8000-000000000011',
-          sourceId: 'source-10000000-0000-4000-8000-000000000011',
+          sourceId: testSourceId('10000000-0000-4000-8000-000000000011'),
           deckId: 'deck-10000000-0000-4000-8000-000000000010',
           kind: 'basic',
           content: {
@@ -138,7 +142,7 @@ describe('native flashcard persistence feasibility', () => {
       await expect(
         createNote(db.client, learner, {
           id: 'note-10000000-0000-4000-8000-000000000012',
-          sourceId: 'source-10000000-0000-4000-8000-000000000012',
+          sourceId: testSourceId('10000000-0000-4000-8000-000000000012'),
           deckId: 'deck-10000000-0000-4000-8000-000000000010',
           kind: 'cloze',
           content: {
@@ -149,7 +153,7 @@ describe('native flashcard persistence feasibility', () => {
       await expect(
         createNote(db.client, learner, {
           id: 'note-10000000-0000-4000-8000-000000000013',
-          sourceId: 'source-10000000-0000-4000-8000-000000000013',
+          sourceId: testSourceId('10000000-0000-4000-8000-000000000013'),
           deckId: 'deck-10000000-0000-4000-8000-000000000010',
           kind: 'cloze',
           content: {
@@ -173,7 +177,7 @@ describe('native flashcard persistence feasibility', () => {
       });
       const note = await createNote(db.client, learner, {
         id: 'note-10000000-0000-4000-8000-000000000002',
-        sourceId: 'source-10000000-0000-4000-8000-000000000002',
+        sourceId: testSourceId('10000000-0000-4000-8000-000000000002'),
         deckId: 'deck-10000000-0000-4000-8000-000000000002',
         kind: 'basic',
         content: { front: 'Merci', back: 'Thank you' }
@@ -306,7 +310,7 @@ describe('native flashcard persistence feasibility', () => {
       });
       const note = await createNote(db.client, ownerA, {
         id: 'note-10000000-0000-4000-8000-000000000003',
-        sourceId: 'source-10000000-0000-4000-8000-000000000003',
+        sourceId: testSourceId('10000000-0000-4000-8000-000000000003'),
         deckId: 'deck-10000000-0000-4000-8000-000000000003',
         kind: 'basic',
         content: { front: 'Au revoir', back: 'Goodbye' }
@@ -354,7 +358,7 @@ describe('native flashcard persistence feasibility', () => {
       });
       const note = await createNote(db.client, learner, {
         id: 'note-10000000-0000-4000-8000-000000000006',
-        sourceId: 'source-10000000-0000-4000-8000-000000000006',
+        sourceId: testSourceId('10000000-0000-4000-8000-000000000006'),
         deckId: 'deck-10000000-0000-4000-8000-000000000006',
         kind: 'basic',
         content: { front: 'Oui', back: 'Yes' }
@@ -414,7 +418,7 @@ describe('native flashcard persistence feasibility', () => {
       });
       const note = await createNote(db.client, learner, {
         id: 'note-10000000-0000-4000-8000-000000000004',
-        sourceId: 'source-10000000-0000-4000-8000-000000000004',
+        sourceId: testSourceId('10000000-0000-4000-8000-000000000004'),
         deckId: 'deck-10000000-0000-4000-8000-000000000004',
         kind: 'cloze',
         content: { text: '{{c1::je}} {{c1::suis}} prêt.' }
@@ -424,7 +428,7 @@ describe('native flashcard persistence feasibility', () => {
       await expect(
         createNote(db.client, learner, {
           id: 'note-10000000-0000-4000-8000-000000000005',
-          sourceId: 'source-10000000-0000-4000-8000-000000000005',
+          sourceId: testSourceId('10000000-0000-4000-8000-000000000005'),
           deckId: 'deck-10000000-0000-4000-8000-000000000004',
           kind: 'cloze',
           content: { text: '{{c1::je}} {{c2::suis}} prêt.' }
@@ -464,7 +468,7 @@ describe('native flashcard persistence feasibility', () => {
       });
       const note = await createNote(db.client, learner, {
         id: 'note-10000000-0000-4000-8000-000000000007',
-        sourceId: 'source-10000000-0000-4000-8000-000000000007',
+        sourceId: testSourceId('10000000-0000-4000-8000-000000000007'),
         deckId: 'deck-10000000-0000-4000-8000-000000000007',
         kind: 'basic',
         content: { front: 'Bonjour', back: 'Hello' }
@@ -511,7 +515,7 @@ describe('native flashcard persistence feasibility', () => {
       });
       const note = await createNote(db.client, learner, {
         id: 'note-10000000-0000-4000-8000-000000000008',
-        sourceId: 'source-10000000-0000-4000-8000-000000000008',
+        sourceId: testSourceId('10000000-0000-4000-8000-000000000008'),
         deckId: 'deck-10000000-0000-4000-8000-000000000008',
         kind: 'basic',
         content: { front: 'Bonjour', back: 'Hello' }
@@ -564,7 +568,7 @@ describe('native flashcard persistence feasibility', () => {
       });
       const note = await createNote(db.client, learner, {
         id: 'note-10000000-0000-4000-8000-000000000009',
-        sourceId: 'source-10000000-0000-4000-8000-000000000009',
+        sourceId: testSourceId('10000000-0000-4000-8000-000000000009'),
         deckId: 'deck-10000000-0000-4000-8000-000000000009',
         kind: 'basic',
         content: { front: 'Bonjour', back: 'Hello' }
@@ -625,7 +629,7 @@ describe('native flashcard persistence feasibility', () => {
       await expect(
         createNote(db.client, learner, {
           id: 'note-10000000-0000-4000-8000-000000000010',
-          sourceId: 'source-10000000-0000-4000-8000-000000000010',
+          sourceId: testSourceId('10000000-0000-4000-8000-000000000010'),
           deckId: 'deck-10000000-0000-4000-8000-000000000010',
           kind: 'basic',
           content: { text: '{{c1::bonjour}}' }
@@ -634,7 +638,7 @@ describe('native flashcard persistence feasibility', () => {
       await expect(
         createNote(db.client, learner, {
           id: 'note-10000000-0000-4000-8000-000000000011',
-          sourceId: 'source-10000000-0000-4000-8000-000000000011',
+          sourceId: testSourceId('10000000-0000-4000-8000-000000000011'),
           deckId: 'deck-10000000-0000-4000-8000-000000000010',
           kind: 'cloze',
           content: { front: 'Bonjour', back: 'Hello' }
@@ -643,7 +647,7 @@ describe('native flashcard persistence feasibility', () => {
       await expect(
         createNote(db.client, learner, {
           id: 'note-10000000-0000-4000-8000-000000000013',
-          sourceId: 'source-10000000-0000-4000-8000-000000000013',
+          sourceId: testSourceId('10000000-0000-4000-8000-000000000013'),
           deckId: 'deck-10000000-0000-4000-8000-000000000010',
           kind: 'cloze',
           content: { text: `{{c1::${'x'.repeat(4090)}}}` }
@@ -655,7 +659,7 @@ describe('native flashcard persistence feasibility', () => {
           sql: 'INSERT INTO native_flashcard_notes (id, source_id, owner_id, deck_id, kind, content_json) VALUES (?, ?, ?, ?, ?, ?)',
           args: [
             'note-10000000-0000-4000-8000-000000000015',
-            'source-10000000-0000-4000-8000-000000000015',
+            testSourceId('10000000-0000-4000-8000-000000000015'),
             learner.userId,
             'deck-10000000-0000-4000-8000-000000000010',
             'basic',
@@ -668,7 +672,7 @@ describe('native flashcard persistence feasibility', () => {
           sql: 'INSERT INTO native_flashcard_notes (id, source_id, owner_id, deck_id, kind, content_json) VALUES (?, ?, ?, ?, ?, ?)',
           args: [
             'note-10000000-0000-4000-8000-000000000019',
-            'source-10000000-0000-4000-8000-000000000019',
+            testSourceId('10000000-0000-4000-8000-000000000019'),
             learner.userId,
             'deck-10000000-0000-4000-8000-000000000010',
             'basic',
@@ -681,11 +685,37 @@ describe('native flashcard persistence feasibility', () => {
           sql: 'INSERT INTO native_flashcard_notes (id, source_id, owner_id, deck_id, kind, content_json) VALUES (?, ?, ?, ?, ?, ?)',
           args: [
             'note-10000000-0000-4000-8000-000000000016',
-            'source-10000000-0000-4000-8000-000000000016',
+            testSourceId('10000000-0000-4000-8000-000000000016'),
             learner.userId,
             'deck-10000000-0000-4000-8000-000000000010',
             'basic',
             JSON.stringify({ front: 'x'.repeat(4097), back: 'Hello' })
+          ]
+        })
+      ).rejects.toThrow(/CHECK|CONSTRAINT/i);
+      await expect(
+        db.client.execute({
+          sql: 'INSERT INTO native_flashcard_notes (id, source_id, owner_id, deck_id, kind, content_json) VALUES (?, ?, ?, ?, ?, ?)',
+          args: [
+            'note-10000000-0000-4000-8000-000000000020',
+            testSourceId('10000000-0000-4000-8000-000000000020'),
+            learner.userId,
+            'deck-10000000-0000-4000-8000-000000000010',
+            'basic',
+            JSON.stringify({ front: `x${' '.repeat(4096)}`, back: 'Hello' })
+          ]
+        })
+      ).rejects.toThrow(/CHECK|CONSTRAINT/i);
+      await expect(
+        db.client.execute({
+          sql: 'INSERT INTO native_flashcard_notes (id, source_id, owner_id, deck_id, kind, content_json) VALUES (?, ?, ?, ?, ?, ?)',
+          args: [
+            'note-10000000-0000-4000-8000-000000000021',
+            testSourceId('10000000-0000-4000-8000-000000000021'),
+            learner.userId,
+            'deck-10000000-0000-4000-8000-000000000010',
+            'cloze',
+            JSON.stringify({ text: `{{c1::x}}${' '.repeat(4088)}` })
           ]
         })
       ).rejects.toThrow(/CHECK|CONSTRAINT/i);
@@ -706,7 +736,7 @@ describe('native flashcard persistence feasibility', () => {
       await expect(
         createNote(db.client, learner, {
           id: 'note-10000000-0000-4000-8000-000000000018',
-          sourceId: 'source-10000000-0000-4000-8000-000000000018',
+          sourceId: testSourceId('10000000-0000-4000-8000-000000000018'),
           deckId: 'deck-10000000-0000-4000-8000-000000000013',
           kind: 'basic',
           content: { front: 'x'.repeat(4097), back: 'y' }
@@ -728,7 +758,7 @@ describe('native flashcard persistence feasibility', () => {
       });
       const note = await createNote(db.client, learner, {
         id: 'note-10000000-0000-4000-8000-000000000014',
-        sourceId: 'source-10000000-0000-4000-8000-000000000014',
+        sourceId: testSourceId('10000000-0000-4000-8000-000000000014'),
         deckId: 'deck-10000000-0000-4000-8000-000000000011',
         kind: 'basic',
         content: { front: 'Bonjour', back: 'Hello' }
@@ -777,7 +807,7 @@ describe('native flashcard persistence feasibility', () => {
       });
       const note = await createNote(db.client, learner, {
         id: 'note-10000000-0000-4000-8000-000000000017',
-        sourceId: 'source-10000000-0000-4000-8000-000000000017',
+        sourceId: testSourceId('10000000-0000-4000-8000-000000000017'),
         deckId: 'deck-10000000-0000-4000-8000-000000000012',
         kind: 'basic',
         content: { front: 'Bonjour', back: 'Hello' }
@@ -792,6 +822,42 @@ describe('native flashcard persistence feasibility', () => {
       await expect(getNote(db.client, learner, note.id)).rejects.toMatchObject({
         code: 'INVALID_CARD_STATE'
       });
+    } finally {
+      db.close();
+    }
+  });
+
+  it('requires source IDs to use the persistent Langlo identity format', async () => {
+    const target = await fixture();
+    const learner = testSession('learner-a');
+    const db = await openFixtureDatabase(target);
+    try {
+      await createDeck(db.client, learner, {
+        id: 'deck-10000000-0000-4000-8000-000000000020',
+        name: 'French'
+      });
+      await expect(
+        createNote(db.client, learner, {
+          id: 'note-10000000-0000-4000-8000-000000000020',
+          sourceId: 'not-a-persistent-source-id',
+          deckId: 'deck-10000000-0000-4000-8000-000000000020',
+          kind: 'basic',
+          content: { front: 'Bonjour', back: 'Hello' }
+        })
+      ).rejects.toMatchObject({ code: 'INVALID_SOURCE_ID' });
+      await expect(
+        db.client.execute({
+          sql: 'INSERT INTO native_flashcard_notes (id, source_id, owner_id, deck_id, kind, content_json) VALUES (?, ?, ?, ?, ?, ?)',
+          args: [
+            'note-10000000-0000-4000-8000-000000000021',
+            'not-a-persistent-source-id',
+            learner.userId,
+            'deck-10000000-0000-4000-8000-000000000020',
+            'basic',
+            JSON.stringify({ front: 'Bonjour', back: 'Hello' })
+          ]
+        })
+      ).rejects.toThrow(/CHECK|CONSTRAINT/i);
     } finally {
       db.close();
     }

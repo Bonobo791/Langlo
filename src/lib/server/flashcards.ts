@@ -30,6 +30,7 @@ type RatingName = 'again' | 'hard' | 'good' | 'easy';
 const schedulerVersion = 'ts-fsrs@5.4.2';
 const parameters = generatorParameters();
 const maxCardTextLength = 4096;
+const sourceIdPattern = /^langlo:v1:[0-9a-f]{64}$/;
 const ratings: Record<RatingName, Grade> = {
   again: Rating.Again,
   hard: Rating.Hard,
@@ -221,6 +222,11 @@ export async function createNote(
   session: LearnerSession,
   input: CreateNoteInput
 ) {
+  if (
+    typeof input.sourceId !== 'string' ||
+    !sourceIdPattern.test(input.sourceId)
+  )
+    throw new FlashcardError('INVALID_SOURCE_ID');
   validateContent(input.kind, input.content);
   const cardId = `card:${input.id}`;
   const card = newCard();
