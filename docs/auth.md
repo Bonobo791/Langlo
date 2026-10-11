@@ -1,10 +1,11 @@
 # Langlo authentication contract
 
-**Status:** T010a selection and implementation plan, approved 2026-10-10 (three
-days ahead of the recorded October 13 schedule; owner approved the early start
-in-session). This document defines the contract only. **No authentication is
-implemented yet** — the `/app` guard still denies by default and no route
-accepts credentials. Implementation is T010b; acceptance is T010c.
+**Status:** T010a selection approved 2026-10-10; **T010b implementation complete
+on `codex/t010b-langlo-29`** — real `/api/auth/**`, `/login`, `/recover`,
+`/reset` routes and a minimal authenticated `/app` landing exist against
+disposable fixtures, with observed behavior recorded in
+`docs/evidence/T010.md`. T010c route-level acceptance remains pending; no live
+provider, production database, or real account has been touched.
 
 ## Selection
 
@@ -17,11 +18,14 @@ interface for the Proton SMTP submission path.
 | `better-auth`                  | `1.7.7` (published 2026-09-30)                                      | `npm view better-auth version`                  |
 | `@better-auth/drizzle-adapter` | `1.7.7` (same release train)                                        | `npm view @better-auth/drizzle-adapter version` |
 | `nodemailer`                   | `10.0.13` (published 2026-09-30; `10.1.0` is newer but <7 days old) | `npm view nodemailer versions`                  |
-| `@better-auth/cli`             | resolved at install; dev-time schema generation only                | —                                               |
+| `@better-auth/cli`             | `1.4.21`; dev-time schema generation only                           | installed at T010b                              |
 
-Pins satisfy the repository's ≥7-day preference as of 2026-10-10. T010b must
-re-verify current releases and re-apply the age rule at install time; the
-contract constrains the major line (`1.7.x`), not the exact patch.
+Pins satisfy the repository's ≥7-day preference as of 2026-10-10, re-verified
+at T010b install. The contract constrains the major line (`1.7.x`), not the
+exact patch. Note: `better-auth@1.7.7` declares an outdated optional peer range
+`@sveltejs/kit ^2.0.0`; the project pins Kit 3.0.1, so install uses
+`--legacy-peer-deps` and the code deliberately avoids `better-auth/svelte-kit`
+— the hook calls the plain `Request → Response` handler and API methods.
 
 ### Alternatives considered
 
@@ -62,24 +66,26 @@ contract constrains the major line (`1.7.x`), not the exact patch.
 - Database-backed sessions via the Drizzle adapter (`provider: 'sqlite'`) on the
   existing libSQL client. Session rows live in this database, so logout and
   revocation delete server state — not just a cookie.
-- `session.expiresIn` and `session.updateAge` are set explicitly in
-  `auth.ts` (starting contract: `expiresIn` = 7 days, `updateAge` = 1 day;
-  T010b records final values). Session cookie cache
+- `session.expiresIn` = 7 days and `session.updateAge` = 1 day are set
+  explicitly in `auth.ts`. Session cookie cache
   (`session.cookieCache`) stays **disabled**: every request re-validates the
   session row so revocation takes effect immediately.
-- Cookie contract (asserted by T010c, not assumed): `HttpOnly`,
-  `SameSite=Lax`, `Secure` whenever the origin is HTTPS, `Path=/`. Better Auth
-  sets these attributes itself; T010b records actual emitted `Set-Cookie`
-  headers for the pinned version.
+- Cookie contract (observed in T010b on the pinned release): `HttpOnly`,
+  `SameSite=Lax`, `Path=/`, `Max-Age=604800`; `Secure` is emitted only for
+  HTTPS origins (`useSecureCookies` is pinned to the configured origin's
+  scheme rather than NODE_ENV). `applyAuthCookies` forwards framework cookie
+  attributes through `event.cookies` without adding `Secure` on HTTP and
+  decodes the already-percent-encoded signed value so it round-trips intact.
 - Request protections: `trustedOrigins: [APP_ORIGIN]`; Better Auth's CSRF/origin
   checks stay enabled (`advanced.disableCSRFCheck` never set); SvelteKit's
   built-in form-action origin checking remains untouched.
 - `emailAndPassword.revokeSessionsOnPasswordReset: true` — a completed
-  recovery invalidates every other session for that account.
-- Session-token-at-rest form is framework-owned internals; T010b records the
-  actual stored column semantics. If the token column is stored unhashed, that
-  residual is documented openly in T010b evidence (database-at-rest
-  confidentiality is the compensating control).
+  recovery invalidates every other session for that account. Verified in
+  T010b: session rows for the account drop to zero on reset redemption.
+- **Observed residual:** Better Auth stores session tokens **unhashed** in
+  `sessions.token` (the cookie value appends a signature suffix). Database-
+  at-rest confidentiality is the compensating control; recorded openly in
+  T010b evidence and re-asserted at T010c.
 - `BETTER_AUTH_SECRET` is required configuration (secret env, ≥ 32 chars); it
   signs/encrypts framework tokens. Never committed, never logged.
 
@@ -87,15 +93,16 @@ contract constrains the major line (`1.7.x`), not the exact patch.
 
 - `emailAndPassword.sendResetPassword` delivers the reset link through the
   `Mailer` interface (§6); `resetPasswordTokenExpiresIn: 1800` (30 minutes).
-- `verification.storeIdentifier: 'hashed'` is configured if available in the
-  installed release; otherwise T010b documents the actual storage form and any
-  compensating control.
+- `verification.storeIdentifier: 'hashed'` exists in the pinned release and
+  is configured — `verifications.identifier` holds a hash of
+  `reset-password:<token>` while `value` holds the user id. Raw reset tokens
+  are never persisted (observed in T010b).
 - Single-use: a redeemed token must be unusable again (replay), and two
   concurrent redemptions of the same token must produce exactly one success.
-  The atomic-consume mechanism is verified behavior-first in T010b and proven
-  under a real process barrier in T010c (same technique as
-  `tests/db-concurrency.test.ts`). If framework redemption is not atomic, T010b
-  adds a compensating atomic guard rather than accepting the gap.
+  Better Auth's atomic `consumeVerificationValue` (delete-if-match) provides
+  this — observed in T010b: replay returns 400 `INVALID_TOKEN` and a
+  concurrent barrier yields exactly one 200. T010c re-proves it under a real
+  process barrier (same technique as `tests/db-concurrency.test.ts`).
 - A successful reset revokes all existing sessions (§2) and issues a fresh
   session only through the normal sign-in path or framework-authenticated
   response.
@@ -103,18 +110,24 @@ contract constrains the major line (`1.7.x`), not the exact patch.
 ### 4. Enumeration resistance and rate limits
 
 - Uniform responses: unknown and known emails produce the same status and
-  body shape on login-failure and reset-request paths. T010c asserts response
-  equality, not copy text.
-- Timing: `sendResetPassword` must not be awaited before the response (Better
-  Auth's own docs warn about this timing channel); delivery is fire-and-forget
-  with failure confined to safe logs.
-- Rate limits (contract values; T010c asserts deterministic 429 behavior):
-  - `/sign-in/email`: 3 attempts per 10 seconds per client (framework default
-    rule retained), plus a configured stricter window — 5 per 5 minutes.
-  - Reset-request endpoint(s): 3 per 10 minutes per client.
+  body shape on login-failure and reset-request paths — observed in T010b
+  (401 `INVALID_EMAIL_OR_PASSWORD` for unknown email and wrong password
+  alike; identical reset-request success body for both). T010c asserts
+  response equality, not copy text.
+- Timing: `sendResetPassword` is deliberately fire-and-forget so known vs
+  unknown delivery does not skew the response; Better Auth also runs a dummy
+  verification lookup for unknown emails. Delivery failure is confined to
+  allowlisted safe diagnostics.
+- Rate limits (as configured; observed deterministic 429s in T010b; T010c
+  re-asserts at route level):
+  - `/api/auth/sign-in/email`: 5 per 300 seconds per client.
+  - `/api/auth/request-password-reset`: 3 per 600 seconds per client.
+  - `/api/auth/reset-password`: 5 per 600 seconds per client.
   - `rateLimit.storage: 'database'` so limits survive process restart (single
     Node adapter); `rateLimit.enabled: true` is set explicitly in every
     environment, since the framework default only enforces in production.
+    Observed: `rate_limits` rows persist in SQLite across restarts, and the
+    counter saturates at `max` rather than growing on rejected requests.
 
 ### 5. Learner ownership across sessions
 
@@ -135,12 +148,13 @@ contract constrains the major line (`1.7.x`), not the exact patch.
 
 - **Provisioning** (`npm run accounts:provision`, server-only): an operator CLI
   in the style of `tests/fixtures/cli.ts` — explicit targets, guarded against
-  ambient env, no credential logging. It creates the user row and the
-  credential/account row using the framework's own password hasher (single
-  source of truth). Preferred path: the framework's server-side API; if
-  `disableSignUp` also blocks server-side creation, T010b falls back to a
-  direct adapter insert using the context password hasher and records which
-  path was verified. Provisioning a real account on a real database is a
+  ambient env, no credential logging, password read from stdin. Verified path
+  in T010b: `disableSignUp` also blocks the public sign-up API, so provisioning
+  uses Better Auth's internals — `ctx.password.hash(password)` (the
+  framework's scrypt hasher, single source of truth),
+  `ctx.context.internalAdapter.createUser(...)` with the admin provisioning
+  source, and `linkAccount` creating the `credential`-provider account row
+  (`emailVerified: true`). Provisioning a real account on a real database is a
   separate authorized step, not part of T010b.
 - **Mailer interface** (`src/lib/server/mail.ts`): one method, e.g.
   `send({ to, subject, text })`. Implementations:
@@ -175,15 +189,18 @@ contract constrains the major line (`1.7.x`), not the exact patch.
 
 ## Schema plan — migration `0005_auth_contract.sql` (next free version; 0004 is taken)
 
-- `@better-auth/cli generate` produces the framework schema for review; output
-  is merged by hand into `src/lib/server/db/schema.ts` and expressed as a
-  checked-in migration — never applied by a CLI against any real database.
-- Core tables expected: `user`, `session`, `account`, `verification`, plus
-  `rate_limit` (database rate-limit storage). The existing `users` table
-  serves as the `user` model where column mapping is clean (add `email`,
-  `email_verified`, `name`, `updated_at`); otherwise a mapped `user` table is
-  added — T010b records the final mapping. Framework default model names are
-  kept to minimize configuration drift.
+- `@better-auth/cli generate` produced the framework schema for review; output
+  was merged by hand into `src/lib/server/db/schema.ts` and expressed as the
+  checked-in migration `0005_auth_contract.sql` — never applied by a CLI
+  against any real database.
+- Final mapping (observed): the existing `users` table serves as the `user`
+  model plus four new tables — `sessions`, `accounts`, `verifications`,
+  `rate_limits`. Plural names follow house convention and are bound through
+  explicit `modelName` options in `auth.ts` (deterministic; the adapter's
+  `usePlural` inflection was not relied on). `users.email` stays nullable +
+  unique so synthetic fixture users cannot collide on a blank value, and
+  `users.updated_at` carries a constant `DEFAULT 0` because SQLite rejects
+  non-constant `ALTER TABLE ADD COLUMN` defaults on populated tables.
 - All tables get `owner`-style FK treatment where applicable: `session` and
   `account` rows reference the user and cascade on delete, consistent with the
   existing model.
@@ -191,33 +208,41 @@ contract constrains the major line (`1.7.x`), not the exact patch.
   hand-authored triggers from 0001–0003 are unaffected. `drizzle-kit check`
   and clean/repeat migration tests apply.
 
-## Planned interfaces
+## Implemented interfaces (T010b)
 
-- `src/lib/server/auth.ts` — `createAuth(config: RuntimeConfig, db)` building
-  the configured `betterAuth` instance; server-only.
-- `src/lib/server/mail.ts` — `Mailer` interface + `SmtpMailer` + `CaptureMailer`.
-- `hooks.server.ts` — `svelteKitHandler` mounted on `/api/auth/**` only;
-  existing correlation/header/guard logic wraps it unchanged.
-- `src/app.d.ts` — `Locals.user`/`session` typing.
-- Routes `/login`, `/recover`, `/reset` — real forms replacing the placeholder;
-  `private, no-store` + `noindex` headers already in place.
-- `src/lib/server/accounts-provision.ts` + `npm run accounts:provision` —
-  guarded operator CLI.
-- `src/env.ts` + `docs/environment.md` additions: `BETTER_AUTH_SECRET`
-  (secret), `PROTON_SMTP_TOKEN` (secret), `MAIL_FROM`, optional `SMTP_HOST`
-  (default `smtp.protonmail.ch`), `SMTP_PORT` (default `587`) — registered when
-  implemented, not before.
-- `event.cookies`/framework cookie writes must flow through the existing
-  header pipeline so `private, no-store` is preserved on auth responses.
+- `src/lib/server/auth.ts` — `createAuth(config, { db, mailer })` building the
+  configured `betterAuth` instance with explicit plural `modelName` mappings;
+  server-only.
+- `src/lib/server/auth-runtime.ts` — memoized `resolveAuth()` wiring config →
+  app database → auth at the request boundary.
+- `src/lib/server/auth-cookies.ts` — `applyAuthCookies` forwarding framework
+  `Set-Cookie` attributes through `event.cookies` (explicit `secure: false`
+  on HTTP, decoded signed value) so form actions establish sessions.
+- `src/lib/server/mail.ts` — `Mailer` interface, `CaptureMailer` (in-memory),
+  `FileCaptureMailer` (JSON-per-message under `MAIL_CAPTURE_DIR`),
+  `SmtpMailer` (Nodemailer; `secure: false`, `requireTLS: true`).
+- `src/lib/server/accounts.ts` + `scripts/accounts-provision.ts` +
+  `npm run accounts:provision` — guarded operator CLI.
+- `hooks.server.ts` — correlation ID, security headers, config validation,
+  `/api/auth/**` handled by `auth.handler`, session resolution for
+  `/app/**` + `/login`, deny-by-default guard preserved.
+- `src/app.d.ts` — `Locals.user`/`session`/`correlationId` typing.
+- Routes `/login`, `/recover`, `/reset`, and a minimal `/app` landing with
+  sign-out — real forms replacing placeholders; `private, no-store` +
+  `noindex` headers preserved.
+- `src/env.ts` + `docs/environment.md` additions registered:
+  `BETTER_AUTH_SECRET`, `MAIL_TRANSPORT`, `MAIL_FROM`, `PROTON_SMTP_TOKEN`,
+  `SMTP_HOST`, `SMTP_PORT`, `MAIL_CAPTURE_DIR`.
 
-## T010b implementation boundaries
+## T010b implementation boundaries (executed)
 
-May do: add the pinned dependencies (re-verified ≥7 days old at install);
-create migration 0005 and auth/mail/provision modules; wire the hook, locals,
-and the three auth pages; extend `env.ts`/`environment.md`/`routes.md` for the
-now-real paths; write unit/integration tests for implemented behavior;
-document actual observed framework behavior (cookie flags, token storage,
-error shapes) in evidence.
+Done within bounds: pinned dependencies installed; migration
+`0005_auth_contract.sql` created and verified on disposable fixtures;
+auth/mail/provision modules added; hook, locals, and the three auth pages
+wired; `env.ts`/`environment.md`/`routes.md`/`schema.md` updated; unit and
+e2e behavior tests written for implemented behavior; observed framework
+behavior (cookie flags, token storage, error shapes, rate-limit counters)
+recorded in `docs/evidence/T010.md`.
 
 Must not: provision real accounts or call live SMTP/Turso; add any public or
 alternate registration path; change the `LearnerSession` service seam or

@@ -27,14 +27,19 @@
     "db:migrate": "node tests/fixtures/cli.ts migrate",
     "db:seed:test": "node tests/fixtures/cli.ts seed",
     "db:test:reset": "node tests/fixtures/cli.ts reset",
-    "db:fixture:dispose": "node tests/fixtures/cli.ts dispose"
+    "db:fixture:dispose": "node tests/fixtures/cli.ts dispose",
+    "accounts:provision": "node scripts/accounts-provision.ts"
   },
   "dependencies": {
+    "@better-auth/drizzle-adapter": "1.7.7",
     "@libsql/client": "0.18.0",
+    "better-auth": "1.7.7",
     "drizzle-orm": "0.45.3",
+    "nodemailer": "10.0.13",
     "ts-fsrs": "5.4.2"
   },
   "devDependencies": {
+    "@better-auth/cli": "1.4.21",
     "@eslint/js": "10.0.1",
     "@playwright/test": "1.63.0",
     "@sveltejs/adapter-node": "6.0.0",
