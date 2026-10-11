@@ -73,6 +73,13 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: |
           set -euo pipefail
+          is_test_path() {
+            [[ "$1" =~ ^(src|tests)/.*\.(test|spec)\.[cm]?[jt]sx?$ ]] ||
+              [[ "$1" =~ ^(src|tests)/(.*/)?__tests?__/.*\.[cm]?[jt]sx?$ ]]
+          }
+          is_testtrust_path() {
+            [[ "$1" != tests/e2e/* && "$1" =~ ^(src|tests)/.*\.test\.[cm]?[jt]sx?$ ]]
+          }
           if [[ "$EVENT_NAME" == "pull_request" ]]; then
             base_ref="origin/$BASE_REF"
           elif [[ -n "${EVENT_BEFORE:-}" && ! "$EVENT_BEFORE" =~ ^0+$ ]]; then
@@ -80,26 +87,69 @@ jobs:
           else
             base_ref="HEAD^"
           fi
-          git diff --name-only --diff-filter=ACMRT -z "$base_ref...HEAD" > "$RUNNER_TEMP/testtrust-changed-files"
-          mapfile -d '' -t all_changed_files < "$RUNNER_TEMP/testtrust-changed-files"
+          git diff --name-status -z --find-renames "$base_ref...HEAD" > "$RUNNER_TEMP/testtrust-changes"
+          mapfile -d '' -t change_records < "$RUNNER_TEMP/testtrust-changes"
           changed_unit_tests=()
-          for path in "${all_changed_files[@]}"; do
-            case "$path" in
-              tests/e2e/*) continue ;;
+          deleted_test_paths=()
+          renamed_test_out_of_scope_count=0
+          record_index=0
+          while ((record_index < ${#change_records[@]})); do
+            status="${change_records[record_index]}"
+            ((record_index += 1))
+            case "$status" in
+              R*|C*)
+                if ((record_index + 1 >= ${#change_records[@]})); then
+                  echo '::error::Git returned an incomplete rename/copy record'
+                  exit 1
+                fi
+                old_path="${change_records[record_index]}"
+                new_path="${change_records[record_index + 1]}"
+                ((record_index += 2))
+                if is_testtrust_path "$new_path"; then
+                  changed_unit_tests+=("$new_path")
+                fi
+                if [[ "$status" == R* ]] && is_test_path "$old_path" && ! is_test_path "$new_path"; then
+                  ((renamed_test_out_of_scope_count += 1))
+                fi
+                ;;
+              D)
+                path="${change_records[record_index]}"
+                ((record_index += 1))
+                if is_test_path "$path"; then
+                  deleted_test_paths+=("$path")
+                fi
+                ;;
+              *)
+                path="${change_records[record_index]}"
+                ((record_index += 1))
+                if is_testtrust_path "$path"; then
+                  changed_unit_tests+=("$path")
+                fi
+                ;;
             esac
-            if [[ "$path" =~ ^(src|tests)/.*\.test\.[cm]?[jt]sx?$ ]]; then
-              changed_unit_tests+=("$path")
-            fi
           done
           : > "$RUNNER_TEMP/testtrust-changed-tests"
           if ((${#changed_unit_tests[@]} > 0)); then
             printf '%s\0' "${changed_unit_tests[@]}" > "$RUNNER_TEMP/testtrust-changed-tests"
           fi
           echo "count=${#changed_unit_tests[@]}" >> "$GITHUB_OUTPUT"
+          echo "deleted_test_paths=${#deleted_test_paths[@]}" >> "$GITHUB_OUTPUT"
+          echo "renamed_test_out_of_scope=${renamed_test_out_of_scope_count}" >> "$GITHUB_OUTPUT"
           echo "base_ref=$base_ref" >> "$GITHUB_OUTPUT"
+          if ((${#deleted_test_paths[@]} > 0)); then
+            echo "::notice::Detected ${#deleted_test_paths[@]} deleted test path(s); Overlock evaluates deletions. TestTrust scans surviving changed unit tests only."
+          fi
+          if ((renamed_test_out_of_scope_count > 0)); then
+            echo "::error::Detected $renamed_test_out_of_scope_count test file(s) renamed outside a recognized test path. Keep tests in recognized test paths or retain replacement tests so they remain collected."
+            exit 1
+          fi
           if ((${#changed_unit_tests[@]} == 0)); then
             echo 'has_tests=false' >> "$GITHUB_OUTPUT"
-            echo 'No changed Jest/Vitest-style unit tests; TestTrust will be skipped.'
+            if ((${#deleted_test_paths[@]} > 0)); then
+              echo 'Only deleted tests changed; Overlock handles removals and TestTrust will be skipped.'
+            else
+              echo 'No changed Jest/Vitest-style unit tests; TestTrust will be skipped.'
+            fi
           else
             echo 'has_tests=true' >> "$GITHUB_OUTPUT"
           fi
