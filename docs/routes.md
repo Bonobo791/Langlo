@@ -14,3 +14,5 @@
 | Unknown routes                 | Public safe unavailable page                     | no-store                                               | No input echo; no analytics                                                                                  | Query/token/answer sentinel exclusion                  |
 
 The private route guard is deliberately deny-by-default until T010/T011 establish real accounts and verified principals. Database tables alone do not establish authentication, privacy isolation of an API or usable learner journeys. Only local fixtures are used in this slice.
+
+T010a selected the authentication contract in [auth.md](auth.md); the rows above still describe current behavior until T010b implements it.

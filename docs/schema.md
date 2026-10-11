@@ -4,7 +4,7 @@
 
 T009 implements the local SQLite/libSQL shape for the Langlo implementation plan's R001/R003/R009/R010. It is not production storage, authentication, a curriculum importer, scoring, a queue worker or Windows Anki integration. Database/ORM code is server-only. The only connection entry point is an explicitly marked disposable fixture, using `@libsql/client/sqlite3`; it cannot contact Turso or another network service.
 
-The shared curriculum model covers French A1, German A1/A2 and English A1/A2. Metadata rows are not authored lessons or audited coverage. `users` currently contains an identifier and creation timestamp only; T010 must select a maintained compatible auth implementation and add its schema through a new migration. No password/session/recovery design is implied here.
+The shared curriculum model covers French A1, German A1/A2 and English A1/A2. Metadata rows are not authored lessons or audited coverage. `users` currently contains an identifier and creation timestamp only; T010a selected Better Auth 1.7.x in [docs/auth.md](auth.md) and T010b will add its schema through a new migration. No password/session/recovery design is implied here.
 
 ## Tables and data classifications
 
